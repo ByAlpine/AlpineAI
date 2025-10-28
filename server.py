@@ -386,3 +386,26 @@ logger = logging.getLogger(__name__)
 async def shutdown_db_client():
 
     client.close()
+from fastapi.staticfiles import StaticFiles
+
+# --- Statik Dosya Sunumu (Frontend Entegrasyonu) ---
+
+# Ön yüz uygulamanızın derlenmiş statik dosyalarının bulunduğu dizinin adını buraya girin.
+# Varsayılan olarak "build", "dist" veya "static" klasörü kullanılır.
+# **LÜTFEN KONTROL EDİN:** React projenizi oluşturduğunuzda bu dosyalar hangi klasöre derleniyor?
+STATIC_DIR = "build" 
+
+@app.on_event("startup")
+async def startup_event():
+    # Gunicorn'un yalnızca tek bir kez çalıştığından emin olmak için
+    try:
+        app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+        logger.info(f"Frontend Static Files Mounted from /{STATIC_DIR}")
+    except RuntimeError:
+        logger.warning(f"Static Files directory '{STATIC_DIR}' not found. Serving API only.")
+
+@app.get("/")
+async def serve_index():
+    # Bu rota, `app.mount` tarafından yakalanmazsa, API'nin çalıştığını doğrular.
+    # Ancak normalde `app.mount` bu rotayı önbellekten/klasörden sunmalıdır.
+    return {"detail": "API is Running. Static files not found or mounted incorrectly."}
