@@ -13,7 +13,7 @@ from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import base64
-from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType, ImageContent
+# from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType, ImageContent
 import io
 
 ROOT_DIR = Path(__file__).parent
@@ -384,4 +384,5 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+
     client.close()
