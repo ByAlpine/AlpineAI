@@ -13,8 +13,12 @@ from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import base64
+# Eğer kullanıyorsanız, buradaki import satırını aktif tutun:
 # from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType, ImageContent
 import io
+
+# Statik Dosya Sunumu için gerekli
+from fastapi.staticfiles import StaticFiles
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -285,7 +289,7 @@ async def send_message(
                     )
                 )
             )
-        
+            
         # Kullanıcının mesajına dosya adını ekle (Arayüzde gösterim ve kaydetme için)
         user_message_content += f" [Yüklenen Dosya: {file.filename} ({file.content_type})]"
 
@@ -386,26 +390,17 @@ logger = logging.getLogger(__name__)
 async def shutdown_db_client():
 
     client.close()
-from fastapi.staticfiles import StaticFiles
 
 # --- Statik Dosya Sunumu (Frontend Entegrasyonu) ---
 
-# Ön yüz uygulamanızın derlenmiş statik dosyalarının bulunduğu dizinin adını buraya girin.
-# Varsayılan olarak "build", "dist" veya "static" klasörü kullanılır.
-# **LÜTFEN KONTROL EDİN:** React projenizi oluşturduğunuzda bu dosyalar hangi klasöre derleniyor?
-STATIC_DIR = "build" 
+# package.json olmadığı için 'build' klasörü oluşmayacak.
+# Bu yüzden dosyaların bulunduğu ana dizini (".") işaret ediyoruz.
+STATIC_DIR = "." # Eskiden "build" idi.
 
-@app.on_event("startup")
-async def startup_event():
-    # Gunicorn'un yalnızca tek bir kez çalıştığından emin olmak için
-    try:
-        app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
-        logger.info(f"Frontend Static Files Mounted from /{STATIC_DIR}")
-    except RuntimeError:
-        logger.warning(f"Static Files directory '{STATIC_DIR}' not found. Serving API only.")
+# app.mount("/", ...) kodunu artık startup event'i dışında doğrudan ekliyoruz.
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
-@app.get("/")
-async def serve_index():
-    # Bu rota, `app.mount` tarafından yakalanmazsa, API'nin çalıştığını doğrular.
-    # Ancak normalde `app.mount` bu rotayı önbellekten/klasörden sunmalıdır.
-    return {"detail": "API is Running. Static files not found or mounted incorrectly."}
+@app.get("/api")
+async def api_root():
+    # API'nin çalıştığını kontrol etmek için yeni, sade bir kök rota.
+    return {"detail": "API is Running."}
