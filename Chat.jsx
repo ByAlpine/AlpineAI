@@ -3,11 +3,12 @@ import rehypeHighlight from 'rehype-highlight';
 import 'highlight.js/styles/atom-one-dark.css';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Card } from '@/components/ui/card';
+// DÜZELTİLDİ: Mutlak yollar göreli yollara çevrildi
+import { Button } from './components/ui/button';
+import { Input } from './components/ui/input';
+import { ScrollArea } from './components/ui/scroll-area';
+import { Avatar, AvatarFallback } from './components/ui/avatar';
+import { Card } from './components/ui/card';
 import { toast } from 'sonner';
 import { PlusCircle, Send, Image as ImageIcon, LogOut, Trash2, Menu, X } from 'lucide-react';
 
@@ -19,8 +20,8 @@ export default function Chat({ token, user, onLogout }) {
   const [currentConversation, setCurrentConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null); // Artık Base64 değil, File objesi tutacak
-  const [imagePreview, setImagePreview] = useState(null); // Sadece resimler için Base64 URL tutacak
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const messagesEndRef = useRef(null);
@@ -80,14 +81,13 @@ export default function Chat({ token, user, onLogout }) {
       setCurrentConversation(response.data);
       setMessages([]);
       toast.success('New conversation started');
-      return response.data; // Yeni konuşmayı döndür
+      return response.data;
     } catch (error) {
       toast.error('Failed to create conversation');
       return null;
     }
   };
 
-  // Yeni dosya yükleme fonksiyonu
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -99,17 +99,16 @@ export default function Chat({ token, user, onLogout }) {
         return;
       }
 
-      setSelectedImage(file); // File objesini kaydet
+      setSelectedImage(file);
 
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
-          // Base64 URL'i sadece görsel önizlemesi için kullan
           setImagePreview(reader.result);
         };
         reader.readAsDataURL(file);
       } else {
-        setImagePreview(null); // Görsel olmayan dosyalar için önizlemeyi temizle
+        setImagePreview(null);
       }
     } else {
       setSelectedImage(null);
@@ -125,36 +124,31 @@ export default function Chat({ token, user, onLogout }) {
     }
   };
 
-  // Güncellenmiş sendMessage fonksiyonu
   const sendMessage = async () => {
     let conv = currentConversation;
     if (!inputMessage.trim() && !selectedImage) return;
 
-    // Eğer bir konuşma yoksa, yeni bir tane oluştur
     if (!conv) {
       conv = await createNewConversation();
-      if (!conv) return; // Konuşma oluşturulamazsa dur
+      if (!conv) return;
     }
 
     setLoading(true);
     const messageToSend = inputMessage;
-    const fileToSend = selectedImage; // File object
+    const fileToSend = selectedImage;
 
-    // 1. Kullanıcı mesajını anında UI'a ekle (Gecikmeyi azaltmak için)
     const tempUserMessage = {
-      id: Date.now().toString(), // Geçici ID
+      id: Date.now().toString(),
       conversation_id: conv.id,
       role: 'user',
-      // Dosya adını mesaj içeriğine ekle
       content: messageToSend + (fileToSend ? ` [Yüklenen Dosya: ${fileToSend.name} (${fileToSend.type})]` : ''),
       created_at: new Date().toISOString(),
       has_image: fileToSend && fileToSend.type.startsWith('image/'),
-      image_data: null, // Base64 kodlamasını backend'den alacağız
+      image_data: null,
     };
 
     setMessages((prev) => [...prev, tempUserMessage]);
 
-    // Inputları ve önizlemeyi temizle
     setInputMessage('');
     setSelectedImage(null);
     setImagePreview(null);
@@ -162,41 +156,32 @@ export default function Chat({ token, user, onLogout }) {
         fileInputRef.current.value = '';
     }
 
-    // 2. FormData oluştur ve mesaj/dosyayı ekle
     const formData = new FormData();
     formData.append('conversation_id', conv.id);
     formData.append('message', messageToSend);
     
     if (fileToSend) {
-      // Backend'e 'file' adıyla gönderiyoruz.
       formData.append('file', fileToSend);
     }
     
     try {
-      // 3. Mesajı multipart/form-data olarak gönder
       const response = await axios.post(`${API}/chat/message`, formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          // Content-Type: 'multipart/form-data' axios tarafından otomatik olarak ayarlanır.
         },
       });
 
-      // 4. Geçici mesajı kaldır ve gerçek mesajları ekle
       setMessages((prev) => {
-        // Geçici mesajı filtrele
         const newMessages = prev.filter(msg => msg.id !== tempUserMessage.id);
-        // Gerçek kullanıcı mesajını (backend'den gelen) ve asistan yanıtını ekle
         return [...newMessages, response.data.user_message, response.data.assistant_message];
       });
 
-      // 5. Konuşma listesini ve varsa başlığı güncelle
       loadConversations();
       
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error(error.response?.data?.detail || 'Mesaj gönderilemedi. Lütfen tekrar deneyin.');
       
-      // Hata durumunda geçici mesajı kaldır 
       setMessages((prev) => prev.filter(msg => msg.id !== tempUserMessage.id));
       
     } finally {
@@ -372,8 +357,8 @@ export default function Chat({ token, user, onLogout }) {
                   <div
                     className={`max-w-[70%] ${
                       msg.role === 'user'
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm'
-                        : 'bg-white rounded-2xl rounded-tl-sm shadow-md border border-gray-100'
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm'
+                          : 'bg-white rounded-2xl rounded-tl-sm shadow-md border border-gray-100'
                     } p-4`}
                   >
                     {msg.has_image && msg.image_data && (
@@ -390,9 +375,9 @@ export default function Chat({ token, user, onLogout }) {
                      style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       <ReactMarkdown
-                       rehypePlugins={[rehypeHighlight]} // Kod bloklarını vurgulamak için
+                        rehypePlugins={[rehypeHighlight]}
                       >
-                       {msg.content}
+                        {msg.content}
                       </ReactMarkdown>
                     </div>
                   </div>
@@ -434,10 +419,8 @@ export default function Chat({ token, user, onLogout }) {
               <Card className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200" data-testid="file-preview">
                 <div className="flex items-center gap-3">
                   {selectedImage.type.startsWith('image/') && imagePreview ? (
-                    // Görsel önizlemesi
                     <img src={imagePreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover" />
                   ) : (
-                    // Görsel olmayan dosya önizlemesi
                     <div className="w-16 h-16 rounded-lg bg-blue-200 flex items-center justify-center text-blue-800 text-xs font-semibold">
                       {selectedImage.type.includes('pdf') ? 'PDF' : selectedImage.type.includes('text') ? 'TXT' : 'FILE'}
                     </div>
@@ -464,14 +447,14 @@ export default function Chat({ token, user, onLogout }) {
                 ref={fileInputRef}
                 onChange={handleFileChange}
                 className="hidden"
-                accept="image/*,application/pdf,text/plain,.md" // Dosya kabul tipleri güncellendi
+                accept="image/*,application/pdf,text/plain,.md"
                 data-testid="file-input"
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="p-3 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200"
                 disabled={loading}
-                data-testid="upload-file-button" // Test ID güncellendi
+                data-testid="upload-file-button"
               >
                 <ImageIcon className="w-6 h-6 text-gray-600" />
               </button>
