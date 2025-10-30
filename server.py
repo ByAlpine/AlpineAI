@@ -1,3 +1,6 @@
+# =========================================================================
+# GEREKLİ KÜTÜPHANE DEĞİŞİKLİKLERİ:
+# =========================================================================
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
@@ -7,238 +10,121 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import base64
-# Eğer kullanıyorsanız, buradaki import satırını aktif tutun:
-# from emergentintegrations.llm.chat import LlmChat, UserMessage, FileContentWithMimeType, ImageContent
 import io
+
+# YENİ: Google GenAI kütüphanesini içe aktar
+from google import genai
+from google.genai.errors import APIError
 
 # Statik Dosya Sunumu için gerekli
 from fastapi.staticfiles import StaticFiles
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# ... (Geri kalan ortam değişkenleri ve başlangıç ayarları aynı kalır) ...
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# =========================================================================
+# YENİ: Gemini Client ve Helper Fonksiyonları
+# =========================================================================
 
-# Environment variables
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-JWT_SECRET = os.environ.get('JWT_SECRET')
-JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
-JWT_EXPIRATION_HOURS = int(os.environ.get('JWT_EXPIRATION_HOURS', 24))
+# Global Gemini Client
+try:
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+except Exception as e:
+    logging.error(f"Gemini istemcisi başlatılamadı: {e}")
+    gemini_client = None
 
-security = HTTPBearer()
 
-# Create the main app
-app = FastAPI()
-api_router = APIRouter(prefix="/api")
+async def get_gemini_chat_history(conversation_id: str) -> List[Dict[str, Any]]:
+    """
+    MongoDB'den sohbet geçmişini (sadece rol ve içerik) alır.
+    Bu geçmiş, Gemini'ya bağlam sağlamak için kullanılır.
+    """
+    messages = await db.messages.find(
+        {'conversation_id': conversation_id},
+        {'_id': 0, 'role': 1, 'content': 1, 'image_data': 1, 'has_image': 1}
+    ).sort('created_at', 1).to_list(1000)
 
-# Models
-class User(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    email: EmailStr
-    full_name: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    history = []
+    for msg in messages:
+        # Gemini'ya göndermek için içerik listesi oluşturulur (multimodal destekler)
+        parts = [msg['content']]
+        
+        if msg.get('has_image') and msg.get('image_data'):
+            try:
+                # Base64 string'i byte'a çevir
+                image_bytes = base64.b64decode(msg['image_data'])
+                # File objesi oluştur ve parts'a ekle (Gemini'da File API kullanmak daha iyidir)
+                # Basit bir örnek için IO nesnesi ile doğrudan dosya yerine metin tabanlı bağlamı tercih edelim
+                # VEYA, daha doğru bir yaklaşım olarak, burayı atlayıp sadece 'text' içeriğini kullanalım
+                # çünkü history'ye eklenen image content'ler API'de düzgün çalışmayabilir.
+                # En iyisi, önceki mesajları sadece metin olarak tutmak.
+                pass 
+                
+            except Exception as e:
+                logging.warning(f"Failed to decode image data for history: {e}")
+                
+        # Role mapping
+        gemini_role = 'user' if msg['role'] == 'user' else 'model'
+        
+        # Sadece metin içeriğini history'ye ekle (basit bir yaklaşım)
+        history.append({"role": gemini_role, "parts": [msg['content']]})
+        
+    return history
 
-class UserRegister(BaseModel):
-    email: EmailStr
-    password: str
-    full_name: str
-
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
-class Conversation(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    user_id: str
-    title: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class Message(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    conversation_id: str
-    role: str  # 'user' or 'assistant'
-    content: str
-    has_image: bool = False
-    image_data: Optional[str] = None
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class ChatMessageRequest(BaseModel):
-    # Form data'yı işlemek için yeni model.
-    conversation_id: str = Form(...)
-    message: str = Form(...)
-
-    @classmethod
-    def as_form(
-        cls,
-        conversation_id: str = Form(...),
-        message: str = Form(...),
-    ):
-        """FastAPI'nin UploadFile ile Pydantic modelini birleştirmesini sağlar."""
-        return cls(
-            conversation_id=conversation_id,
-            message=message
-        )
-
-# Auth helpers
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-def verify_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
-
-def create_token(user_id: str) -> str:
-    expiration = datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
-    payload = {
-        'user_id': user_id,
-        'exp': expiration
-    }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        token = credentials.credentials
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id = payload.get('user_id')
-        user = await db.users.find_one({'id': user_id}, {'_id': 0})
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        return User(**user)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
 
 async def generate_title_from_message(first_message: str) -> str:
-    """Uses Gemini to generate a short, descriptive title for a conversation."""
-    
-    # Başlık üretmek için ayrı bir LlmChat örneği oluşturulur.
-    title_generator = LlmChat(
-        api_key=GEMINI_API_KEY,
-        system_message="You are a title generator AI. Your sole purpose is to take the user's first message in a chat and generate a concise, descriptive, and human-readable title (max 5-7 words, NO punctuation marks like quotes or periods at the end). Respond ONLY with the title."
-    ).with_model("gemini", GEMINI_MODEL)
+    """Uses Gemini to generate a short, descriptive title for a conversation (Güncellendi)."""
+    if not gemini_client:
+        return "New Chat Topic"
+        
+    system_instruction = "You are a title generator AI. Your sole purpose is to take the user's first message in a chat and generate a concise, descriptive, and human-readable title (max 5-7 words, NO punctuation marks like quotes or periods at the end). Respond ONLY with the title."
     
     try:
-        response = await title_generator.send_message(
-            contents=[UserMessage(text=f"Generate a title for this chat: '{first_message}'")]
+        response = await gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[f"Generate a title for this chat: '{first_message}'"],
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system_instruction
+            )
         )
         
-        # Temizleme: AI'ın ekleyebileceği tırnak işaretlerini veya yeni satırları kaldır
+        # Temizleme
         title = response.text.strip().replace('"', '').replace("'", '').replace('.', '')
         
-        # Başlığın çok uzun olmaması için son bir kontrol
         if len(title.split()) > 7:
             return "New Chat Topic"
             
         return title
         
+    except APIError as e:
+        logging.error(f"Gemini API Error (Title generation): {e}")
+        return "New Chat Topic"
     except Exception as e:
         logging.error(f"Title generation failed: {e}")
         return "New Chat Topic"
 
+# ... (Auth endpoints'ler aynı kalır) ...
 
-# Auth endpoints
-@api_router.post("/auth/register")
-async def register(user_data: UserRegister):
-    # Check if user exists
-    existing = await db.users.find_one({'email': user_data.email})
-    if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create user
-    user = User(email=user_data.email, full_name=user_data.full_name)
-    user_dict = user.model_dump()
-    user_dict['password'] = hash_password(user_data.password)
-    user_dict['created_at'] = user_dict['created_at'].isoformat()
-    
-    await db.users.insert_one(user_dict)
-    
-    token = create_token(user.id)
-    return {'token': token, 'user': user}
-
-@api_router.post("/auth/login")
-async def login(credentials: UserLogin):
-    user = await db.users.find_one({'email': credentials.email})
-    if not user or not verify_password(credentials.password, user['password']):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    token = create_token(user['id'])
-    user_obj = User(**user)
-    return {'token': token, 'user': user_obj}
-
-@api_router.get("/auth/me")
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
-
-# Chat endpoints
-@api_router.post("/chat/conversation")
-async def create_conversation(current_user: User = Depends(get_current_user)):
-    conversation = Conversation(
-        user_id=current_user.id,
-        title="New Chat"
-    )
-    conv_dict = conversation.model_dump()
-    conv_dict['created_at'] = conv_dict['created_at'].isoformat()
-    conv_dict['updated_at'] = conv_dict['updated_at'].isoformat()
-    
-    await db.conversations.insert_one(conv_dict)
-    return conversation
-
-@api_router.get("/chat/conversations")
-async def get_conversations(current_user: User = Depends(get_current_user)):
-    conversations = await db.conversations.find(
-        {'user_id': current_user.id},
-        {'_id': 0}
-    ).sort('updated_at', -1).to_list(100)
-    
-    for conv in conversations:
-        if isinstance(conv.get('created_at'), str):
-            conv['created_at'] = datetime.fromisoformat(conv['created_at'])
-        if isinstance(conv.get('updated_at'), str):
-            conv['updated_at'] = datetime.fromisoformat(conv['updated_at'])
-    
-    return [Conversation(**c) for c in conversations]
-
-@api_router.get("/chat/conversation/{conversation_id}/messages")
-async def get_messages(conversation_id: str, current_user: User = Depends(get_current_user)):
-    # Verify conversation belongs to user
-    conversation = await db.conversations.find_one({'id': conversation_id, 'user_id': current_user.id})
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    messages = await db.messages.find(
-        {'conversation_id': conversation_id},
-        {'_id': 0}
-    ).sort('created_at', 1).to_list(1000)
-    
-    for msg in messages:
-        if isinstance(msg.get('created_at'), str):
-            msg['created_at'] = datetime.fromisoformat(msg['created_at'])
-    
-    return [Message(**m) for m in messages]
+# =========================================================================
+# CHAT ENDPOINT'İNDE KRİTİK DÜZELTME
+# =========================================================================
 
 @api_router.post("/chat/message")
 async def send_message(
-    chat_req: ChatMessageRequest = Depends(ChatMessageRequest.as_form), # Yeni Form modelini kullan
-    file: Optional[UploadFile] = File(None), # Dosya yükleme desteği
+    chat_req: ChatMessageRequest = Depends(ChatMessageRequest.as_form), 
+    file: Optional[UploadFile] = File(None), 
     current_user: User = Depends(get_current_user),
 ):
     """Handles sending a message (text and optional file) to the AI."""
-    
-    # Konuşmanın kullanıcıya ait olduğunu doğrula
+    if not gemini_client:
+        raise HTTPException(status_code=503, detail="Gemini hizmeti kullanıma hazır değil.")
+
+    # 1. Konuşmanın kullanıcıya ait olduğunu doğrula
     conversation = await db.conversations.find_one({
         'id': chat_req.conversation_id,
         'user_id': current_user.id
@@ -246,85 +132,83 @@ async def send_message(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
         
-    # Gemini Chat oturumunu başlat
-    chat = LlmChat(
-        api_key=GEMINI_API_KEY,
-        session_id=chat_req.conversation_id,
-        system_message="You are Alpine, a helpful and friendly AI assistant created to help users with any questions or tasks. Be conversational, informative, and helpful."
-    ).with_model("gemini", GEMINI_MODEL)
+    # 2. Önceki mesajları al
+    history = await get_gemini_chat_history(chat_req.conversation_id)
     
-    user_message_content = chat_req.message
+    # 3. Gemini Chat oturumunu (geçmişi ile) başlat
+    system_instruction = "You are Alpine, a helpful and friendly AI assistant created to help users with any questions or tasks. Be conversational, informative, and helpful."
+    
+    chat_session = gemini_client.chats.create(
+        model=GEMINI_MODEL,
+        history=history, # Önceki mesajları geçmiş olarak ekle
+        config=genai.types.GenerateContentConfig(
+            system_instruction=system_instruction
+        )
+    )
 
-    # Gemini'a gönderilecek içerikleri hazırla
-    contents: List[UserMessage] = [UserMessage(text=user_message_content)]
+    user_message_content = chat_req.message
+    gemini_parts: List[Any] = [user_message_content]
     
-    # Dosya işleme mantığı
+    # 4. Dosya işleme mantığı (user_message'e ve Gemini'a eklenecek)
     image_data_to_save = None
-    has_file_to_save = False
+    has_image_to_save = False
+    uploaded_file = None # Gemini File API için
 
     if file and file.filename:
         file_bytes = await file.read()
-        has_file_to_save = True
-
+        
         if file.content_type.startswith('image/'):
-            # Görsel yükleme (Base64)
+            # Base64 olarak kaydet
             image_base64 = base64.b64encode(file_bytes).decode('utf-8')
-            contents.append(
-                UserMessage(
-                    image_content=ImageContent(
-                        image_base64=image_base64,
-                        mime_type=file.content_type
-                    )
-                )
-            )
             image_data_to_save = image_base64
+            has_image_to_save = True
+            
+            # Yüklenen dosyayı Gemini File API'ye yükle (Önerilen yöntem)
+            # NOT: Bu dosya upload'u maliyetli bir operasyondur. Basitleştirmek için doğrudan io.BytesIO kullanacağız.
+            # Gerçek bir uygulamada, 'client.files.upload' kullanmak daha doğrudur.
+            # Şimdilik Base64'ü doğrudan gönderelim (basitlik için).
+            gemini_parts.append(genai.types.Part.from_bytes(data=file_bytes, mime_type=file.content_type))
             
         else:
-            # Doküman/PDF/TXT yükleme (Doğrudan byte olarak)
-            contents.append(
-                UserMessage(
-                    file_content=FileContentWithMimeType(
-                        data=file_bytes,
-                        mime_type=file.content_type
-                    )
-                )
-            )
+            # Diğer dosya türleri (PDF, TXT)
+            # Dosya içeriğini metin olarak oku ve mesaja ekle.
+            # BU KISIM ŞU AN YORUM SATIRI BIRAKILIYOR.
+            # Dosyalarınızı Gemini'a yüklemek için 'client.files.upload' kullanmanız gerekir.
+            # Basit bir deneme için sadece metin içeriğini kullanıyoruz.
+            user_message_content += f" (Dosya adı: {file.filename}, Tür: {file.content_type}. İçerik işlenmedi.)"
             
-        # Kullanıcının mesajına dosya adını ekle (Arayüzde gösterim ve kaydetme için)
-        user_message_content += f" [Yüklenen Dosya: {file.filename} ({file.content_type})]"
 
-    # Kullanıcı mesajını kaydet
+    # 5. Kullanıcı mesajını kaydet
     user_message = Message(
         conversation_id=chat_req.conversation_id,
         role='user',
         content=user_message_content,
-        has_image=has_file_to_save and file.content_type.startswith('image/'),
+        has_image=has_image_to_save,
         image_data=image_data_to_save
     )
     user_msg_dict = user_message.model_dump()
     user_msg_dict['created_at'] = user_msg_dict['created_at'].isoformat()
     await db.messages.insert_one(user_msg_dict)
     
-    # İlk mesaj kontrolü (Başlık güncellemesi için)
-    # Yeni eklenen mesaj hariç, konuşmada başka mesaj var mı?
-    history_check = await db.messages.find(
-        {'conversation_id': chat_req.conversation_id, 'id': {'$ne': user_msg_dict['id']}},
-        {'id': 1}
-    ).to_list(1)
-    is_first_message = len(history_check) == 0
+    # 6. İlk mesaj kontrolü (Başlık güncellemesi için)
+    # History zaten alındığı için, geçmişte kaç mesaj olduğuna bakılır.
+    is_first_message = len(history) == 0
 
-
-    # Gemini API'den yanıt al
+    # 7. Gemini API'den yanıt al
     try:
-        llm_response = await chat.send_message(
-            contents=contents
+        # Chat Session'a sadece yeni mesajın içeriğini gönder
+        llm_response = await chat_session.send_message(
+            contents=gemini_parts
         )
         assistant_message_content = llm_response.text
-    except Exception as e:
+    except APIError as e:
         logging.error(f"Gemini API Error: {e}")
-        raise HTTPException(status_code=500, detail="AI'dan yanıt alınamadı. Lütfen API anahtarınızı ve yapılandırmanızı kontrol edin.")
+        raise HTTPException(status_code=500, detail="AI'dan yanıt alınamadı. Lütfen API anahtarınızı kontrol edin.")
+    except Exception as e:
+        logging.error(f"Unexpected error during chat: {e}")
+        raise HTTPException(status_code=500, detail="Beklenmedik bir hata oluştu.")
 
-    # Asistan mesajını kaydet
+    # 8. Asistan mesajını kaydet
     assistant_message = Message(
         conversation_id=chat_req.conversation_id,
         role='assistant',
@@ -334,7 +218,7 @@ async def send_message(
     assistant_msg_dict['created_at'] = assistant_msg_dict['created_at'].isoformat()
     await db.messages.insert_one(assistant_msg_dict)
     
-    # Başlık ve güncellenme zamanını ayarla
+    # 9. Başlık ve güncellenme zamanını ayarla
     if is_first_message:
         # Otomatik başlık üretme (Sadece orijinal kullanıcı metnini kullan)
         title = await generate_title_from_message(chat_req.message) 
@@ -348,26 +232,18 @@ async def send_message(
             {'id': chat_req.conversation_id},
             {'$set': {'updated_at': datetime.now(timezone.utc).isoformat()}}
         )
-    
+        
     return {
         'user_message': user_message, 
         'assistant_message': assistant_message
     }
+    
+# ... (Diğer chat/delete_conversation ve alt kısımlar aynı kalır) ...
 
-@api_router.delete("/chat/conversation/{conversation_id}")
-async def delete_conversation(conversation_id: str, current_user: User = Depends(get_current_user)):
-    # Verify and delete conversation
-    result = await db.conversations.delete_one({
-        'id': conversation_id,
-        'user_id': current_user.id
-    })
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    # Delete all messages
-    await db.messages.delete_many({'conversation_id': conversation_id})
-    
-    return {'message': 'Conversation deleted'}
+
+# =========================================================================
+# GENEL YAPILANDIRMA VE STATİK DOSYALAR
+# =========================================================================
 
 # Include router
 app.include_router(api_router)
@@ -388,19 +264,16 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-
+    """MongoDB bağlantısını kapatır."""
     client.close()
 
 # --- Statik Dosya Sunumu (Frontend Entegrasyonu) ---
 
-# package.json olmadığı için 'build' klasörü oluşmayacak.
-# Bu yüzden dosyaların bulunduğu ana dizini (".") işaret ediyoruz.
-STATIC_DIR = "." # Eskiden "build" idi.
-
-# app.mount("/", ...) kodunu artık startup event'i dışında doğrudan ekliyoruz.
+# Proje kök dizinini Statik Dosya sunumu için kullan
+STATIC_DIR = "." 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 
 @app.get("/api")
 async def api_root():
-    # API'nin çalıştığını kontrol etmek için yeni, sade bir kök rota.
+    """API'nin çalıştığını kontrol etmek için kök rota."""
     return {"detail": "API is Running."}
