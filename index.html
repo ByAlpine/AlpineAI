@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    </head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alpine AI Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
+    </style>
+  </head>
+  <body>
     <div id="root"></div>
 
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sonner@1.4.0/dist/index.global.js"></script>
-    <script src="https://unpkg.com/react-markdown@8.0.7/react-markdown.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-router-dom@6/dist/umd/react-router-dom.production.min.js"></script>
+    
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sonner@1.4.0/dist/index.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <script src="https://unpkg.com/react-markdown@8.0.0/react-markdown.js"></script>
     <script src="https://unpkg.com/rehype-highlight@6.0.0/rehype-highlight.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.24.0/dist/main.js"></script> 
-    <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.309.0/dist/cjs/lucide-react.min.js"></script>
-    <script>
-        // lucide-react, lucide objesini oluşturduğu için onu window.lucide olarak atıyoruz.
-        window.lucide = lucide;
-    </script>
-    
-    <script src="app-compiled.js"></script> 
-    
-    <script src="index.js"></script> 
-</body>
+    <script src="app-compiled.js"></script>
+    <script src="index.js"></script>
+  </body>
 </html>
