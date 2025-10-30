@@ -1,27 +1,25 @@
-// Gerekli global kütüphanelerin yüklendiğinden emin olmak için ekleme
-const App = window.App; // app-compiled.js'de atanan global App bileşenini kullan
+// index.js
 
-const { BrowserRouter } = window.ReactRouterDOM || {}; // React Router'ı lokal olarak yükle
+// createRoot fonksiyonunu global ReactDOM objesinden alın.
+const { createRoot } = ReactDOM;
 
-// ReactDOM, index.html içinde CDN'den yüklendi
-const rootElement = document.getElementById('root');
+// App değişkenini window objesinden alın (app-compiled.js'de atandı).
+const App = window.App; 
 
-if (rootElement && App) {
-    // Uygulamayı başlat
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(
-        // BrowserRouter zaten App içinde tanımlı olduğu için burada sadeleştirilebilir,
-        // ancak React'in katı modunda bırakmakta fayda var.
-        React.createElement(React.StrictMode, null, React.createElement(App, null))
-    );
-} else {
-    // Uygulamanın başlatılamadığını bildirmek için hata mesajı
-    console.error("Hata: 'root' elementi bulunamadı veya App bileşeni yüklenmedi.");
-}
+// React değişkenini window objesinden alın.
+const React = window.React;
 
-// Tailwind uyarısını gizlemek için global stil tanımı (Gereksiz uyarıyı kapatır)
-const style = document.createElement('style');
-style.textContent = `
-    .prose code::before, .prose code::after { content: normal !important; }
-`;
-document.head.appendChild(style);
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('root');
+    
+    // Yalnızca 'root' elementi ve App bileşeni mevcutsa uygulamayı başlat
+    if (container && App) {
+        createRoot(container).render(
+            React.createElement(React.StrictMode, null, 
+                React.createElement(App, null)
+            )
+        );
+    } else {
+        console.error("Hata: 'root' elementi bulunamadı veya App bileşeni yüklenmedi.");
+    }
+});
