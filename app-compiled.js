@@ -1,7 +1,6 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ TEK DOSYA (JSX -> Saf JavaScript)
- * DÜZELTME NOTU: Global değişken çakışmalarını önlemek için React hook'ları, axios, toast ve lucide
- * ikonları artık her bileşenin (Auth ve Chat) başında lokal olarak tanımlanmıştır.
+ * DÜZELTME NOTU: Tüm global çakışmalar giderildi ve App bileşeni en sonda global olarak atandı.
  */
 
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
@@ -1241,6 +1240,6 @@ const App = function () {
     )
   );
 };
-// app-compiled.js dosyasının en altı
-        window.App = App; // App bileşenini global olarak atama
 
+// BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
+window.App = App;
