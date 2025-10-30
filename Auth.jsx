@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-// DÜZELTİLDİ: Mutlak yollar göreli yollara çevrildi
-// Not: Gerçek bir React projesinde bu importlar, projenizin bileşen yapısına göre ayarlanmalıdır.
-// Bu JSX'i direkt index.html içinde çalıştırıyorsanız, bu importlar çalışmayacaktır.
-// Ancak projenizin dosya yapısını korumak adına şimdilik bırakıyorum.
-import { Button } from './components/ui/button'; 
-import { Input } from './components/ui/input'; 
-import { Label } from './components/ui/label'; 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
-import { toast } from 'sonner';
+// DÜZELTME: Tüm 'import'lar kaldırıldı.
+// Gerekli fonksiyonları 'index.html'de yüklenen global 'window' nesnesinden alıyoruz.
+const { useState } = React;
+const { toast } = Sonner;
+// 'axios' zaten global olarak 'window.axios' şeklinde yüklendi.
 
-// DÜZELTME: Backend aynı sunucuda çalışıyorsa URL'i boş bırakmak ve göreli yol kullanmak daha güvenlidir.
-// Eğer test için yerel çalıştırmak isterseniz: const BASE_API = 'http://localhost:8000/api';
-const BASE_API = '/api'; 
-
-export default function Auth({ onLogin }) {
+// DÜZELTME: 'export default' kaldırıldı.
+// Fonksiyonu 'window' nesnesine atayarak global hale getiriyoruz.
+window.Auth = function ({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -22,6 +14,9 @@ export default function Auth({ onLogin }) {
     full_name: ''
   });
   const [loading, setLoading] = useState(false);
+
+  // DÜZELTME: API yolu, backend 'server.py' ile aynı yerde çalıştığı için göreli olmalı.
+  const BASE_API = '/api';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,20 +26,17 @@ export default function Auth({ onLogin }) {
       const endpoint = isLogin ? '/auth/login' : '/auth/register';
       const payload = isLogin 
         ? { email: formData.email, password: formData.password }
-        : formData; // Kayıt için full_name de gönderilir
+        : formData;
 
-      // API çağrısı: Göreli yol kullanılıyor
+      // 'axios' (window.axios) ile API'ye istek at
       const response = await axios.post(`${BASE_API}${endpoint}`, payload);
       
-      // Başarılı toast
-      // Not: 'sonner' kütüphanesini import ettiğiniz için toast'un tanımlı olduğunu varsayıyoruz.
+      // 'Sonner.toast' (window.Sonner.toast) ile bildirim göster
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
       
-      // Üst bileşene token ve kullanıcı verilerini ilet
       onLogin(response.data.token, response.data.user);
 
     } catch (error) {
-      // Hata toast
       toast.error(error.response?.data?.detail || 'An unexpected error occurred');
     } finally {
       setLoading(false);
@@ -56,7 +48,6 @@ export default function Auth({ onLogin }) {
   };
 
   return (
-    // ... (JSX kısmı tamamen aynı kalır) ...
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -69,21 +60,24 @@ export default function Auth({ onLogin }) {
           <p className="text-gray-600 mt-2" style={{fontFamily: 'Inter, sans-serif'}}>Your intelligent assistant powered by Gemini</p>
         </div>
 
-        <Card className="border-0 shadow-xl backdrop-blur-sm bg-white/80" data-testid="auth-card">
-          <CardHeader>
-            <CardTitle className="text-2xl" style={{fontFamily: 'Space Grotesk, sans-serif'}}>
+        {/* DÜZELTME: <Card> bileşenleri standart <div>, <h2>, <p> etiketleriyle değiştirildi. */}
+        <div className="border-0 shadow-xl backdrop-blur-sm bg-white/80 rounded-lg border bg-card text-card-foreground" data-testid="auth-card">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold" style={{fontFamily: 'Space Grotesk, sans-serif'}}>
               {isLogin ? 'Welcome Back' : 'Create Account'}
-            </CardTitle>
-            <CardDescription style={{fontFamily: 'Inter, sans-serif'}}>
+            </h2>
+            <p className="text-muted-foreground" style={{fontFamily: 'Inter, sans-serif'}}>
               {isLogin ? 'Sign in to continue your conversations' : 'Get started with Alpine AI'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
+          </div>
+          <div className="p-6 pt-0">
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="full_name" style={{fontFamily: 'Inter, sans-serif'}}>Full Name</Label>
-                  <Input
+                  {/* DÜZELTME: <Label> -> <label> */}
+                  <label htmlFor="full_name" style={{fontFamily: 'Inter, sans-serif'}}>Full Name</label>
+                  {/* DÜZELTME: <Input> -> <input> */}
+                  <input
                     id="full_name"
                     name="full_name"
                     type="text"
@@ -92,14 +86,14 @@ export default function Auth({ onLogin }) {
                     onChange={handleChange}
                     required={!isLogin}
                     data-testid="full-name-input"
-                    className="border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
                   />
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email" style={{fontFamily: 'Inter, sans-serif'}}>Email</Label>
-                <Input
+                <label htmlFor="email" style={{fontFamily: 'Inter, sans-serif'}}>Email</label>
+                <input
                   id="email"
                   name="email"
                   type="email"
@@ -108,13 +102,13 @@ export default function Auth({ onLogin }) {
                   onChange={handleChange}
                   required
                   data-testid="email-input"
-                  className="border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="password" style={{fontFamily: 'Inter, sans-serif'}}>Password</Label>
-                <Input
+                <label htmlFor="password" style={{fontFamily: 'Inter, sans-serif'}}>Password</label>
+                <input
                   id="password"
                   name="password"
                   type="password"
@@ -123,19 +117,20 @@ export default function Auth({ onLogin }) {
                   onChange={handleChange}
                   required
                   data-testid="password-input"
-                  className="border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
                 />
               </div>
 
-              <Button
+              {/* DÜZELTME: <Button> -> <button> */}
+              <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-6 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl"
+                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-6 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                 disabled={loading}
                 data-testid="submit-button"
                 style={{fontFamily: 'Inter, sans-serif'}}
               >
                 {loading ? 'Please wait...' : (isLogin ? 'Sign In' : 'Create Account')}
-              </Button>
+              </button>
             </form>
 
             <div className="mt-6 text-center">
@@ -144,15 +139,14 @@ export default function Auth({ onLogin }) {
                 onClick={() => setIsLogin(!isLogin)}
                 className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
                 data-testid="toggle-auth-mode"
-                style={{fontFamily: 'Inter, sans-serif'}}
+                style={{fontFamily: 'Inter, sans-sa' }}
               >
                 {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
               </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
-      
     </div>
   );
 }
