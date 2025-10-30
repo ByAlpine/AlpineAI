@@ -4,16 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AlpineAI Chat App</title>
-    
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="stylesheet" href="App.css">
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/lucide-react@0.294.0/dist/umd/lucide-react.js"></script>
+    <script src="https://unpkg.com/react-markdown@8/react-markdown.min.js"></script>
+    <script src="https://unpkg.com/rehype-highlight@6/index.js"></script>
+    <script src="https://unpkg.com/sonner/dist/index.js"></script>
+    
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Lucide icon'larının varsayılan olarak çok büyük olmasını engelle */
+        .lucide {
+            width: 1em;
+            height: 1em;
+        }
+    </style>
 </head>
 <body>
     <div id="root"></div>
+
+    <script type="text/babel" src="Auth.jsx" data-presets="react"></script>
+    <script type="text/babel" src="Chat.jsx" data-presets="react"></script>
+    <script type="text/babel" src="App.js" data-presets="react"></script>
     
-    <script type="text/babel" src="Auth.jsx" data-presets="react" data-plugins="transform-modules-umd"></script>
-    <script type="text/babel" src="Chat.jsx" data-presets="react" data-plugins="transform-modules-umd"></script>
-    <script type="text/babel" src="App.js" data-presets="react" data-plugins="transform-modules-umd"></script> 
+    <script type="text/babel" src="index.js" data-presets="react"></script>
 </body>
 </html>
