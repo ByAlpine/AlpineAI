@@ -9,6 +9,7 @@ const App = window.App;
 // React değişkenini window objesinden alın.
 const React = window.React;
 
+// Kodun, tüm DOM ve scriptler yüklendikten sonra çalışmasını garantile
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('root');
     
