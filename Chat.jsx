@@ -1,19 +1,24 @@
-import ReactMarkdown from 'react-markdown';
-// Derleme hatasına neden olan kısımlar yorum satırı yapıldı
-// import rehypeHighlight from 'rehype-highlight'; 
-// import 'highlight.js/styles/atom-one-dark.css'; 
-// Söz dizimi vurgulama (syntax highlighting) için bu paketlerin projenize kurulması gerekir.
+// DÜZELTME: Tüm 'import'lar kaldırıldı.
+// Gerekli fonksiyonları 'index.html'de yüklenen global 'window' nesnesinden alıyoruz.
+const { useState, useEffect, useRef } = React;
 
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { toast } from 'sonner';
-import { PlusCircle, Send, Image as ImageIcon, LogOut, Trash2, Menu, X } from 'lucide-react';
+// Kütüphane değişkenleri 'index.html'den global olarak gelir
+// ReactMarkdown = window.ReactMarkdown
+// axios = window.axios
+// toast = window.Sonner.toast
+// Lucide ikonaleri (PlusCircle, Send, vb.) = window.lucide
 
-// KRİTİK DÜZELTME: process.env hatasını gidermek için URL sabit kodlandı
+// DÜZELTME: Lucide ikonlarını global nesneden alıyoruz
+const { PlusCircle, Send, Image: ImageIcon, LogOut, Trash2, Menu, X } = lucide;
+
+// KRİTİK DÜZELTME: process.env olmadığı için Render URL'sini kullanıyoruz.
+// NOT: Backend ile aynı Render ortamındaysanız, bunu sadece '/api' olarak değiştirmek daha güvenlidir.
+// Ancak Render'ın ücretsiz planında bazen bu hatalı olabilir, o yüzden şimdilik tam URL'yi tutalım.
 const BACKEND_URL = 'https://alpinetr-backend.onrender.com';
 const API = `${BACKEND_URL}/api`;
 
-export default function Chat({ token, user, onLogout }) {
+// DÜZELTME: 'export default' kaldırıldı ve fonksiyon 'window' nesnesine atandı.
+window.Chat = function ({ token, user, onLogout }) {
   const [conversations, setConversations] = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -32,7 +37,8 @@ export default function Chat({ token, user, onLogout }) {
     // EK DÜZELTME: Ekran boyutuna göre başlangıç sidebar durumunu ayarla (md breakpoint: 768px)
     const handleResize = () => {
         const isMobile = window.innerWidth < 768;
-        setSidebarOpen(!isMobile);
+        // Eğer mobil ise kapalı, masaüstü ise açık başlar.
+        setSidebarOpen(!isMobile); 
     };
 
     handleResize(); 
@@ -252,6 +258,9 @@ export default function Chat({ token, user, onLogout }) {
       {children}
     </div>
   );
+  
+  // ReactMarkdown ve rehype-highlight kullanıldığı için
+  const rehypeHighlight = window.rehypeHighlight; 
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -259,8 +268,6 @@ export default function Chat({ token, user, onLogout }) {
       {/* Sidebar */}
       <div
         className={`${
-          // Mobil: Tam ekran, Mutlak konumlu (absolute), Z-index 20
-          // Masaüstü (md ve üzeri): 80 genişlik, Göreceli konumlu (relative)
           sidebarOpen ? 'w-full md:w-80 absolute z-20 md:relative' : 'w-0'
         } transition-all duration-300 bg-white/95 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-hidden flex-shrink-0 h-full`}
         data-testid="sidebar"
@@ -431,7 +438,9 @@ export default function Chat({ token, user, onLogout }) {
                       style={{ fontFamily: 'Inter, sans-serif' }}
                     >
                       <ReactMarkdown
-                        // rehypePlugins={[rehypeHighlight]} // Bu satır derleme hatasına neden olduğu için yorum satırı yapıldı
+                        // 'rehypeHighlight' global olarak yüklendiği için kullanılabilir.
+                        // Yalnızca kod bloğunun doğru bir şekilde işlenmesi için 'rehypeHighlight' eklentisi zorunludur.
+                        rehypePlugins={[rehypeHighlight]} 
                       >
                         {msg.content}
                       </ReactMarkdown>
