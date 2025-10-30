@@ -1,42 +1,21 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ TEK DOSYA (JSX -> Saf JavaScript)
- * Auth.js, Chat.js ve App.js dosyaları birleştirildi ve tarayıcının 
- * doğrudan çalıştırabileceği şekilde (React.createElement) dönüştürüldü.
- * Bu dosyanın amacı, 'Uncaught SyntaxError: Unexpected token <' hatasını çözmektir.
- *
- * NOT: Bu kodun elle düzenlenmesi TAVSİYE EDİLMEZ.
+ * DÜZELTME NOTU: Global değişken çakışmalarını önlemek için React hook'ları, axios, toast ve lucide
+ * ikonları artık her bileşenin (Auth ve Chat) başında lokal olarak tanımlanmıştır.
  */
 
-// Global kütüphane erişimi
-const useState = React.useState;
-const useEffect = React.useEffect;
-const useRef = React.useRef;
-const toast = Sonner.toast;
-const axios = window.axios;
-const ReactMarkdown = window.ReactMarkdown;
-const rehypeHighlight = window.rehypeHighlight;
-const ReactRouterDOM = window.ReactRouterDOM;
-const BrowserRouter = ReactRouterDOM.BrowserRouter;
-const Routes = ReactRouterDOM.Routes;
-const Route = ReactRouterDOM.Route;
-const Navigate = ReactRouterDOM.Navigate;
-const Toaster = window.Sonner.Toaster;
-const Lucide = window.lucide;
-const PlusCircle = Lucide.PlusCircle;
-const Send = Lucide.Send;
-const ImageIcon = Lucide.Image;
-const LogOut = Lucide.LogOut;
-const Trash2 = Lucide.Trash2;
-const Menu = Lucide.Menu;
-const X = Lucide.X;
-
-// Backend URL Sabiti (App.js'den alınmıştır)
+// SADECE GLOBAL SABİTLER BURADA KALMALIDIR
 const BACKEND_URL = 'https://alpinetr-backend.onrender.com';
 const API = `${BACKEND_URL}/api`;
 const BASE_API = '/api'; // Auth.js'den alınmıştır
 
 // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
 const Auth = function ({ onLogin }) {
+  // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
+  const useState = React.useState;
+  const toast = Sonner.toast;
+  const axios = window.axios; 
+
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -58,6 +37,7 @@ const Auth = function ({ onLogin }) {
           }
         : formData;
 
+      // BASE_API kullanılıyor, Render'ın proxy yapması beklenir
       const response = await axios.post(`${BASE_API}${endpoint}`, payload);
       toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
       onLogin(response.data.token, response.data.user);
@@ -309,6 +289,25 @@ const Auth = function ({ onLogin }) {
 
 // --- Chat Bileşeni (JSX'ten dönüştürülmüş) ---
 const Chat = function ({ token, user, onLogout }) {
+  // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
+  const useState = React.useState;
+  const useEffect = React.useEffect;
+  const useRef = React.useRef;
+  const toast = Sonner.toast;
+  const axios = window.axios;
+  const ReactMarkdown = window.ReactMarkdown;
+  const rehypeHighlight = window.rehypeHighlight;
+  const Lucide = window.lucide;
+  
+  // İKONLAR (Lucide yüklenemezse varsayılan 'div' kullan)
+  const PlusCircle = Lucide ? Lucide.PlusCircle : 'div';
+  const Send = Lucide ? Lucide.Send : 'div';
+  const ImageIcon = Lucide ? Lucide.Image : 'div';
+  const LogOut = Lucide ? Lucide.LogOut : 'div';
+  const Trash2 = Lucide ? Lucide.Trash2 : 'div';
+  const Menu = Lucide ? Lucide.Menu : 'div';
+  const X = Lucide ? Lucide.X : 'div';
+  
   const [conversations, setConversations] = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -1044,67 +1043,64 @@ const Chat = function ({ token, user, onLogout }) {
         React.createElement(
           'div',
           {
-            className: 'flex items-center gap-3'
+            className: 'flex items-center'
           },
           React.createElement(
             'button',
             {
-              onClick: () => setSidebarOpen(!sidebarOpen),
+              onClick: () => setSidebarOpen(true),
               className:
-                'p-2 hover:bg-gray-100 rounded-lg transition-colors',
-              'data-testid': 'toggle-sidebar'
+                'p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden mr-3',
+              'aria-label': 'Menüyü Aç'
             },
-            sidebarOpen && window.innerWidth < 768
-              ? React.createElement(X, {
-                  className: 'w-5 h-5'
-                })
-              : React.createElement(Menu, {
-                  className: 'w-5 h-5'
-                })
+            React.createElement(Menu, {
+              className: 'w-6 h-6'
+            })
           ),
           React.createElement(
-            'h1',
+            'h2',
             {
-              className: 'text-xl font-bold',
+              className: 'text-lg font-semibold text-gray-800 truncate',
               style: {
                 fontFamily: 'Space Grotesk, sans-serif'
               }
             },
-            currentConversation?.title || 'Alpine AI'
+            currentConversation ? currentConversation.title : 'New Chat'
           )
+        ),
+        React.createElement(
+          'button',
+          {
+            onClick: createNewConversation,
+            className:
+              'hidden md:flex items-center text-indigo-600 hover:text-indigo-800 transition-colors',
+            style: {
+              fontFamily: 'Inter, sans-serif'
+            }
+          },
+          React.createElement(PlusCircle, {
+            className: 'w-5 h-5 mr-1'
+          }),
+          'New Chat'
         )
       ),
-      // Messages
+      // Messages Area
       React.createElement(
         'div',
         {
-          className: 'flex-1 p-6 overflow-y-auto'
+          className: 'flex-1 p-6 overflow-y-auto space-y-8',
+          'data-testid': 'messages-area'
         },
-        messages.length === 0 && !loading
-          ? React.createElement(EmptyState, null)
-          : React.createElement(
-              'div',
-              {
-                className: 'max-w-4xl mx-auto space-y-6'
-              },
-              messages.map((msg) =>
-                React.createElement(MessageRenderer, {
-                  key: msg.id,
-                  msg: msg
-                })
-              ),
-              loading && React.createElement(LoadingIndicator, null),
-              React.createElement('div', {
-                ref: messagesEndRef
-              })
-            )
+        messages.length === 0 && !loading && React.createElement(EmptyState, null),
+        messages.map((msg) => React.createElement(MessageRenderer, { msg: msg, key: msg.id })),
+        loading && React.createElement(LoadingIndicator, null),
+        React.createElement('div', { ref: messagesEndRef })
       ),
       // Input Area
       React.createElement(
         'div',
         {
-          className:
-            'p-4 sm:p-6 bg-white/80 backdrop-blur-sm border-t border-gray-200 flex-shrink-0'
+          className: 'p-6 flex-shrink-0 bg-white/90 backdrop-blur-sm border-t border-gray-200'
         },
         React.createElement(
           'div',
@@ -1115,54 +1111,57 @@ const Chat = function ({ token, user, onLogout }) {
           React.createElement(
             'div',
             {
-              className: 'flex gap-3'
+              className: 'flex items-end bg-white border border-gray-300 rounded-xl shadow-lg focus-within:ring-2 focus-within:ring-indigo-500 transition-all'
             },
+            React.createElement(
+              'button',
+              {
+                onClick: () => fileInputRef.current.click(),
+                className: 'p-3 text-gray-500 hover:text-indigo-600 transition-colors flex-shrink-0',
+                disabled: loading,
+                'aria-label': 'Dosya Seç',
+                'data-testid': 'upload-button'
+              },
+              React.createElement(ImageIcon, {
+                className: 'w-6 h-6'
+              })
+            ),
             React.createElement('input', {
               type: 'file',
               ref: fileInputRef,
               onChange: handleFileChange,
               className: 'hidden',
-              accept: 'image/*,application/pdf,text/plain,.md',
-              'data-testid': 'file-input'
+              accept: 'image/*,application/pdf,text/plain'
             }),
-            React.createElement(
-              'button',
-              {
-                onClick: () => fileInputRef.current?.click(),
-                className:
-                  'p-3 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200 shadow-sm flex-shrink-0',
-                disabled: loading,
-                'data-testid': 'upload-file-button'
-              },
-              React.createElement(ImageIcon, {
-                className: 'w-6 h-6 text-gray-600'
-              })
-            ),
-            React.createElement('input', {
-              type: 'text',
+            React.createElement('textarea', {
               value: inputMessage,
               onChange: (e) => setInputMessage(e.target.value),
               onKeyPress: handleKeyPress,
-              placeholder: 'Type your message...',
-              disabled: loading,
+              placeholder: loading ? 'Please wait for the response...' : 'Message Alpine AI...',
+              rows: 1,
               className:
-                'flex-1 border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-xl text-base py-3 px-4 transition-all duration-200 outline-none',
-              'data-testid': 'message-input',
+                'flex-1 resize-none py-3 px-0 bg-transparent text-gray-800 placeholder-gray-500 focus:outline-none overflow-hidden h-auto max-h-40',
+              disabled: loading,
               style: {
                 fontFamily: 'Inter, sans-serif'
-              }
+              },
+              'data-testid': 'message-input'
             }),
             React.createElement(
               'button',
               {
                 onClick: sendMessage,
+                className: `p-3 m-1 rounded-lg transition-all flex-shrink-0 ${
+                  (inputMessage.trim() || selectedImage) && !loading
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`,
                 disabled: loading || (!inputMessage.trim() && !selectedImage),
-                className:
-                  'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center flex-shrink-0',
+                'aria-label': 'Gönder',
                 'data-testid': 'send-button'
               },
               React.createElement(Send, {
-                className: 'w-5 h-5'
+                className: 'w-6 h-6'
               })
             )
           )
@@ -1174,114 +1173,71 @@ const Chat = function ({ token, user, onLogout }) {
 
 // --- App Bileşeni (JSX'ten dönüştürülmüş) ---
 const App = function () {
-  const [token, setToken] = useState(localStorage.getItem('alpine_token'));
+  // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
+  const useState = React.useState;
+  const useEffect = React.useEffect;
+  const ReactRouterDOM = window.ReactRouterDOM;
+  const BrowserRouter = ReactRouterDOM ? ReactRouterDOM.BrowserRouter : 'div';
+  const Routes = ReactRouterDOM ? ReactRouterDOM.Routes : 'div';
+  const Route = ReactRouterDOM ? ReactRouterDOM.Route : 'div';
+  const Navigate = ReactRouterDOM ? ReactRouterDOM.Navigate : 'div';
+  const Toaster = window.Sonner ? window.Sonner.Toaster : 'div';
+
+  const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      fetchUser();
-    } else {
-      setLoading(false);
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
     }
-  }, [token]);
+    setLoading(false);
+  }, []);
 
-  const fetchUser = async () => {
-    try {
-      const response = await fetch(`${API}/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user');
-      }
-
-      const data = await response.json();
-      setUser(data);
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      localStorage.removeItem('alpine_token');
-      setToken(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = (newToken, userData) => {
-    localStorage.setItem('alpine_token', newToken);
+  const handleLogin = (newToken, newUser) => {
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
-    setUser(userData);
+    setUser(newUser);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('alpine_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   };
 
   if (loading) {
-    return React.createElement(
-      'div',
-      {
-        className:
-          'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50'
-      },
-      React.createElement(
-        'div',
-        {
-          className: 'text-lg text-gray-600'
-        },
-        'Loading...'
-      )
-    );
+    return React.createElement('div', { className: 'flex items-center justify-center min-h-screen text-lg font-bold' }, 'Loading...');
   }
 
+  // App Bileşeni Artık React.createElement kullanıyor
   return React.createElement(
-    'div',
-    {
-      className: 'App'
-    },
+    BrowserRouter,
+    null,
     React.createElement(Toaster, {
-      position: 'top-center'
+      position: 'bottom-center'
     }),
     React.createElement(
-      BrowserRouter,
+      Routes,
       null,
-      React.createElement(
-        Routes,
-        null,
-        React.createElement(Route, {
-          path: '/',
-          element:
-            token && user
-              ? React.createElement(Navigate, {
-                  to: '/chat',
-                  replace: true
-                })
-              : React.createElement(Auth, {
-                  onLogin: handleLogin
-                })
-        }),
-        React.createElement(Route, {
-          path: '/chat',
-          element:
-            token && user
-              ? React.createElement(Chat, {
-                  token: token,
-                  user: user,
-                  onLogout: handleLogout
-                })
-              : React.createElement(Navigate, {
-                  to: '/',
-                  replace: true
-                })
-        })
-      )
+      React.createElement(Route, {
+        path: '/auth',
+        element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin })
+      }),
+      React.createElement(Route, {
+        path: '/',
+        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' })
+      }),
+      React.createElement(Route, {
+        path: '*',
+        element: React.createElement(Navigate, { to: '/' })
+      })
     )
   );
 };
-
-// Global'e sadece App fonksiyonunu atıyoruz (diğerleri zaten içinde)
-window.App = App;
