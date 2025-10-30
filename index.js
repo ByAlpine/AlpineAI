@@ -1,16 +1,18 @@
-// index.js (Basitleştirilmiş)
-// Bu dosya, tüm uygulamayı (app-compiled.js) DOM'a bağlar.
+// index.js (YENİ - SAF JAVASCRIPT)
 
+// Gerekli global fonksiyonları al
 const { createRoot } = ReactDOM;
-const App = window.App; // app-compiled.js'de tanımlanan ana App bileşeni
+const App = window.App; 
+const React = window.React; // React'i al
 
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('root');
     if (container && App) {
+        // JSX kullanmak yerine saf React.createElement kullanıyoruz
         createRoot(container).render(
-            <React.StrictMode>
-                <App />
-            </React.StrictMode>
+            React.createElement(React.StrictMode, null, 
+                React.createElement(App, null)
+            )
         );
     } else {
         console.error("Hata: 'root' elementi bulunamadı veya App bileşeni yüklenmedi.");
