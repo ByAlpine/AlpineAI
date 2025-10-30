@@ -1241,5 +1241,6 @@ const App = function () {
   );
 };
 
+
 // BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
 window.App = App;
