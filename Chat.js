@@ -545,3 +545,4 @@ window.Chat = function ({ token, user, onLogout }) {
     </div>
   );
 }
+
