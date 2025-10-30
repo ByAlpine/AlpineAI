@@ -1,14 +1,11 @@
-// index.js (YENİ - SAF JAVASCRIPT)
-
-// Gerekli global fonksiyonları al
+// index.js
 const { createRoot } = ReactDOM;
-const App = window.App; 
-const React = window.React; // React'i al
+const App = window.App; // Artık App, app-compiled.js'de window'a atanmıştır
+const React = window.React;
 
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('root');
     if (container && App) {
-        // JSX kullanmak yerine saf React.createElement kullanıyoruz
         createRoot(container).render(
             React.createElement(React.StrictMode, null, 
                 React.createElement(App, null)
