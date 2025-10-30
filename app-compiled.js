@@ -1237,10 +1237,10 @@ const App = function () {
       React.createElement(Route, {
         path: '*',
         element: React.createElement(Navigate, { to: '/' })
-        // app-compiled.js dosyasının en altı
-        window.App = App; // App bileşenini global olarak atama
       })
     )
   );
 };
+// app-compiled.js dosyasının en altı
+        window.App = App; // App bileşenini global olarak atama
 
