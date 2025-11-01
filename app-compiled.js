@@ -1,7 +1,8 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ TEK DOSYA (JSX -> Saf JavaScript)
- * DÜZELTME NOTU: Tüm global çakışmalar giderildi ve App bileşeni içindeki tüm kütüphane çağrıları
- * (ReactRouterDOM ve Sonner) direkt window objesi üzerinden erişecek şekilde güncellendi.
+ * NİHAİ DÜZELTME: App bileşeni içindeki tüm kütüphane bileşenleri, 
+ * Chat ve Auth'da olduğu gibi yerel takma ad (local alias) ile tanımlanmıştır 
+ * (window.X.Y -> const Y = window.X.Y;).
  */
 
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
@@ -1177,6 +1178,14 @@ const App = function () {
   const useState = React.useState;
   const useEffect = React.useEffect;
 
+  // 💥 KRİTİK VE NİHAİ DÜZELTME: Kütüphane bileşenlerine yerel takma ad (alias) oluşturuluyor
+  // Bu, UMD (Universal Module Definition) paketlerinde en güvenilir yöntemdir.
+  const BrowserRouter = window.ReactRouterDOM.BrowserRouter;
+  const Routes = window.ReactRouterDOM.Routes;
+  const Route = window.ReactRouterDOM.Route;
+  const Navigate = window.ReactRouterDOM.Navigate;
+  const Toaster = window.Sonner.Toaster; // Sonner için de alias kullanılıyor
+  
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1210,28 +1219,27 @@ const App = function () {
     return React.createElement('div', { className: 'flex items-center justify-center min-h-screen text-lg font-bold' }, 'Loading...');
   }
 
-  // App Bileşeni Artık React.createElement kullanıyor
+  // App Bileşeni Artık React.createElement ile yerel takma adları kullanıyor.
   return React.createElement(
-    window.ReactRouterDOM.BrowserRouter,
+    BrowserRouter, // Yerel takma ad kullanıldı
     null,
-    // KRİTİK DÜZELTME: Toaster, Routes ve Navigate artık window objesinden çağrılıyor
-    React.createElement(window.Sonner.Toaster, {
+    React.createElement(Toaster, { // Yerel takma ad kullanıldı
       position: 'bottom-center'
     }),
     React.createElement(
-      window.ReactRouterDOM.Routes,
+      Routes, // Yerel takma ad kullanıldı
       null,
-      React.createElement(window.ReactRouterDOM.Route, {
+      React.createElement(Route, {
         path: '/auth',
-        element: token ? React.createElement(window.ReactRouterDOM.Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin })
+        element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) // Yerel takma ad kullanıldı
       }),
-      React.createElement(window.ReactRouterDOM.Route, {
+      React.createElement(Route, {
         path: '/',
-        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(window.ReactRouterDOM.Navigate, { to: '/auth' })
+        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) // Yerel takma ad kullanıldı
       }),
-      React.createElement(window.ReactRouterDOM.Route, {
+      React.createElement(Route, {
         path: '*',
-        element: React.createElement(window.ReactRouterDOM.Navigate, { to: '/' })
+        element: React.createElement(Navigate, { to: '/' }) // Yerel takma ad kullanıldı
       })
     )
   );
