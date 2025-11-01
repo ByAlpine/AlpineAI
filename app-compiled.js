@@ -1,6 +1,7 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ TEK DOSYA (JSX -> Saf JavaScript)
- * DÜZELTME NOTU: Tüm global çakışmalar giderildi ve App bileşeni en sonda global olarak atandı.
+ * DÜZELTME NOTU: Tüm global çakışmalar giderildi ve App bileşeni içindeki tüm kütüphane çağrıları
+ * (ReactRouterDOM ve Sonner) direkt window objesi üzerinden erişecek şekilde güncellendi.
  */
 
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
@@ -1173,7 +1174,6 @@ const Chat = function ({ token, user, onLogout }) {
 // --- App Bileşeni (JSX'ten dönüştürülmüş) ---
 const App = function () {
   // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
-  // DİKKAT: Kütüphaneler render anında çağrılacak
   const useState = React.useState;
   const useEffect = React.useEffect;
 
@@ -1182,7 +1182,6 @@ const App = function () {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // DÜZELTME: localStorage anahtarı 'token' ve 'user' olarak düzeltildi
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
@@ -1211,18 +1210,16 @@ const App = function () {
     return React.createElement('div', { className: 'flex items-center justify-center min-h-screen text-lg font-bold' }, 'Loading...');
   }
 
-  // DÜZELTME: Kütüphane bileşenlerine (Routes, Navigate vb.)
-  // tanımlanma anında değil, doğrudan render anında (window objesi üzerinden) erişiyoruz.
-  
- // App Bileşeni Artık React.createElement kullanıyor
+  // App Bileşeni Artık React.createElement kullanıyor
   return React.createElement(
-    window.ReactRouterDOM.BrowserRouter, // BURASI DOĞRU
+    window.ReactRouterDOM.BrowserRouter,
     null,
-    React.createElement(window.Sonner.Toaster, { // <-- ARTIK window.Sonner KULLANIYOR
+    // KRİTİK DÜZELTME: Toaster, Routes ve Navigate artık window objesinden çağrılıyor
+    React.createElement(window.Sonner.Toaster, {
       position: 'bottom-center'
     }),
     React.createElement(
-      window.ReactRouterDOM.Routes, // BURASI DOĞRU
+      window.ReactRouterDOM.Routes,
       null,
       React.createElement(window.ReactRouterDOM.Route, {
         path: '/auth',
@@ -1243,6 +1240,3 @@ const App = function () {
 
 // BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
 window.App = App;
-window.Sonner = window.sonner;
-
-
