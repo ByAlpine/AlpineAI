@@ -3,6 +3,7 @@
 # =========================================================================
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -432,3 +433,4 @@ async def root_path():
 async def api_root():
     """API'nin çalıştığını kontrol etmek için kök rota."""
     return {"detail": "API is Running."}
+
