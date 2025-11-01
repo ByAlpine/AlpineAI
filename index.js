@@ -1,21 +1,17 @@
-// index.js
+// index.js (Tanımlama Hatalarını Önlemek İçin Sadeleştirildi)
 
-// createRoot fonksiyonunu global ReactDOM objesinden alın.
-const { createRoot } = ReactDOM;
-
-// App değişkenini window objesinden alın (app-compiled.js'de atandı).
-const App = window.App; 
-
-// React değişkenini window objesinden alın.
-const React = window.React;
-
-// Kodun, tüm DOM ve scriptler yüklendikten sonra çalışmasını garantile
 document.addEventListener('DOMContentLoaded', () => {
+    // Kök elementini al
     const container = document.getElementById('root');
+    
+    // App bileşenini global window objesinden alıyoruz. (app-compiled.js'de atandı)
+    const App = window.App; 
     
     // Yalnızca 'root' elementi ve App bileşeni mevcutsa uygulamayı başlat
     if (container && App) {
-        createRoot(container).render(
+        // createRoot, ReactDOM'un içinden alınır.
+        ReactDOM.createRoot(container).render(
+            // React.createElement kullanılarak App bileşeni render edilir.
             React.createElement(React.StrictMode, null, 
                 React.createElement(App, null)
             )
