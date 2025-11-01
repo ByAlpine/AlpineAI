@@ -1214,14 +1214,15 @@ const App = function () {
   // DÜZELTME: Kütüphane bileşenlerine (Routes, Navigate vb.)
   // tanımlanma anında değil, doğrudan render anında (window objesi üzerinden) erişiyoruz.
   
+ // App Bileşeni Artık React.createElement kullanıyor
   return React.createElement(
-    window.ReactRouterDOM.BrowserRouter, // Doğrudan window'dan erişim
+    window.ReactRouterDOM.BrowserRouter, // BURASI DOĞRU
     null,
-    React.createElement(window.Sonner.Toaster, { // Doğrudan window'dan erişim
+    React.createElement(window.Sonner.Toaster, { // <-- ARTIK window.Sonner KULLANIYOR
       position: 'bottom-center'
     }),
     React.createElement(
-      window.ReactRouterDOM.Routes, // Doğrudan window'dan erişim
+      window.ReactRouterDOM.Routes, // BURASI DOĞRU
       null,
       React.createElement(window.ReactRouterDOM.Route, {
         path: '/auth',
@@ -1237,8 +1238,9 @@ const App = function () {
       })
     )
   );
-}; // <-- App fonksiyonu burada, tek bir kapanış paranteziyle biter.
+};
 
 
 // BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
 window.App = App;
+
