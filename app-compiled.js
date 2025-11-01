@@ -1243,4 +1243,6 @@ const App = function () {
 
 // BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
 window.App = App;
+window.Sonner = window.sonner;
+
 
