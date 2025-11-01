@@ -1173,20 +1173,16 @@ const Chat = function ({ token, user, onLogout }) {
 // --- App Bileşeni (JSX'ten dönüştürülmüş) ---
 const App = function () {
   // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
+  // DİKKAT: Kütüphaneler render anında çağrılacak
   const useState = React.useState;
   const useEffect = React.useEffect;
-  const ReactRouterDOM = window.ReactRouterDOM;
-  const BrowserRouter = ReactRouterDOM ? ReactRouterDOM.BrowserRouter : 'div';
-  const Routes = ReactRouterDOM ? ReactRouterDOM.Routes : 'div';
-  const Route = ReactRouterDOM ? ReactRouterDOM.Route : 'div';
-  const Navigate = ReactRouterDOM ? ReactRouterDOM.Navigate : 'div';
-  const Toaster = window.Sonner ? window.Sonner.Toaster : 'div';
 
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // DÜZELTME: localStorage anahtarı 'token' ve 'user' olarak düzeltildi
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
@@ -1215,31 +1211,33 @@ const App = function () {
     return React.createElement('div', { className: 'flex items-center justify-center min-h-screen text-lg font-bold' }, 'Loading...');
   }
 
-  // App Bileşeni Artık React.createElement kullanıyor
+  // DÜZELTME: Kütüphane bileşenlerine (Routes, Navigate vb.)
+  // tanımlanma anında değil, doğrudan render anında (window objesi üzerinden) erişiyoruz.
+  
   return React.createElement(
-    BrowserRouter,
+    window.ReactRouterDOM.BrowserRouter, // Doğrudan window'dan erişim
     null,
-    React.createElement(Toaster, {
+    React.createElement(window.Sonner.Toaster, { // Doğrudan window'dan erişim
       position: 'bottom-center'
     }),
     React.createElement(
-      Routes,
+      window.ReactRouterDOM.Routes, // Doğrudan window'dan erişim
       null,
-      React.createElement(Route, {
+      React.createElement(window.ReactRouterDOM.Route, {
         path: '/auth',
-        element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin })
+        element: token ? React.createElement(window.ReactRouterDOM.Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin })
       }),
-      React.createElement(Route, {
+      React.createElement(window.ReactRouterDOM.Route, {
         path: '/',
-        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' })
+        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(window.ReactRouterDOM.Navigate, { to: '/auth' })
       }),
-      React.createElement(Route, {
+      React.createElement(window.ReactRouterDOM.Route, {
         path: '*',
-        element: React.createElement(Navigate, { to: '/' })
+        element: React.createElement(window.ReactRouterDOM.Navigate, { to: '/' })
       })
     )
   );
-};
+}; // <-- App fonksiyonu burada, tek bir kapanış paranteziyle biter.
 
 
 // BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
