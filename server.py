@@ -45,9 +45,9 @@ api_router = APIRouter(prefix="/api")
 
 MONGO_URL = os.getenv("MONGO_URL")
 DB_NAME = os.getenv("DB_NAME", "alpine_ai_db")
-SECRET_KEY = os.getenv("JWT_SECRET")  # ✅ Düzeltme: JWT_SECRET kullan
+SECRET_KEY = os.getenv("JWT_SECRET")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "168"))  # 1 hafta
+ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "168"))
 
 # Gemini Model Ayarları
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -64,7 +64,7 @@ client = AsyncIOMotorClient(MONGO_URL)
 db = client.get_database(DB_NAME)
 
 # =========================================================================
-# VERİ MODELLERİ
+# VERİ MODELLERİ (User, Message, Conversation, vb.)
 # =========================================================================
 
 class User(BaseModel):
@@ -138,7 +138,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 # =========================================================================
-# AUTH ENDPOINTS (✅ AKTİF HALE GETİRİLDİ)
+# AUTH ENDPOINTS
 # =========================================================================
 
 @api_router.post("/auth/register")
@@ -250,7 +250,7 @@ async def get_gemini_chat_history(conversation_id: str) -> List[Dict[str, Any]]:
         if msg.get('has_image') and msg.get('image_data'):
             try:
                 image_bytes = base64.b64decode(msg['image_data'])
-                # ✅ Düzeltme: MIME type'ı dinamik hale getir (şimdilik jpeg)
+                # Düzeltme: MIME type'ı dinamik hale getir (şimdilik jpeg)
                 parts.append(genai.types.Part.from_bytes(data=image_bytes, mime_type='image/jpeg'))
             except Exception as e:
                 logging.warning(f"Failed to decode image data for history: {e}")
@@ -459,7 +459,7 @@ async def delete_conversation(conversation_id: str, current_user: User = Depends
 # Router'ı ekle
 app.include_router(api_router)
 
-# ✅ Düzeltme: CORS ayarları güvenli hale getirildi
+# CORS ayarları güvenli hale getirildi
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -481,9 +481,7 @@ async def shutdown_db_client():
     client.close()
     logging.info("MongoDB connection closed.")
 
-# ✅ Düzeltme: Statik dosya sunumu kaldırıldı (Frontend ayrı deploy edilecek)
-# Frontend Render'da ayrı bir servis olarak çalışacak
-
+# API root endpoint
 @app.get("/")
 async def root_path():
     """API root endpoint."""
@@ -497,5 +495,3 @@ async def root_path():
 async def health_check():
     """Health check endpoint for Render."""
     return {"status": "healthy"}
-
-
