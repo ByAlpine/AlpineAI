@@ -500,6 +500,19 @@ window.onload = () => {
 
  // --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
   const App = function () {
+    // ... (window.onload bloğunun içinde)
+  const App = function () {
+      // ... (handleLogin, handleLogout vb. kodlar)
+
+      // 💥 KESİN GARANTİ: React Router DOM'un her türlü yapısını yakalamak için
+      const RRD = window.ReactRouterDOM;
+
+      // Hatanın tam olarak hangi değişkenden kaynaklandığını görelim.
+      const BrowserRouter = RRD?.BrowserRouter || RRD?.default?.BrowserRouter;
+      const Routes = RRD?.Routes || RRD?.default?.Routes;
+      const Route = RRD?.Route || RRD?.default?.Route;
+      const Navigate = RRD?.Navigate || RRD?.default?.Navigate;
+      // ... (Devamı)
       const [token, setToken] = React.useState(localStorage.getItem('token'));
       const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
 
