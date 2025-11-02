@@ -511,10 +511,15 @@ window.onload = () => {
           setUser(null);
       };
 
-      // 💥 KRİTİK DÜZELTME 4: React Router DOM bileşenlerini tekrar çek ve kontrol et.
-      // Bu kısım artık çalışmalı, çünkü bir önceki katı kontrol kaldırıldı.
-      const { BrowserRouter, Routes, Route, Navigate } = window.ReactRouterDOM || {};
-      // const { Toaster } = window.Sonner; // KALDIRILDI
+      // 💥 KRİTİK DÜZELTME: Destructuring yerine bireysel atama yapıyoruz.
+      // Bu, "Routes" undefined hatasını çözer.
+      const ReactRouterDOM = window.ReactRouterDOM || {};
+      
+      const BrowserRouter = ReactRouterDOM.BrowserRouter;
+      const Routes = ReactRouterDOM.Routes; 
+      const Route = ReactRouterDOM.Route;
+      const Navigate = ReactRouterDOM.Navigate;
+
 
       if (!BrowserRouter || !Routes || !Route || !Navigate) {
           return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'Routing kütüphanesi yüklenemedi. CDN bağlantısını veya önbelleği kontrol edin.');
@@ -522,27 +527,26 @@ window.onload = () => {
 
       // JSX yapısı, globalden alınan bileşenler ile global değişkenleri kullanıyor.
       return React.createElement(
-          BrowserRouter, // Globalden alındı
+        BrowserRouter, // Globalden alındı
+        null,
+        React.createElement(
+          Routes, // Globalden alındı
           null,
-          React.createElement(
-              Routes, // Globalden alındı
-              null,
-              React.createElement(Route, {
-                  path: '/auth',
-                  element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) 
-              }),
-              React.createElement(Route, {
-                  path: '/',
-                  element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) 
-              }),
-              React.createElement(Route, {
-                  path: '*',
-                  element: React.createElement(Navigate, { to: '/' }) 
-              })
-          )
+          React.createElement(Route, {
+            path: '/auth',
+            element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) 
+          }),
+          React.createElement(Route, {
+            path: '/',
+            element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) 
+          }),
+          React.createElement(Route, {
+            path: '*',
+            element: React.createElement(Navigate, { to: '/' }) 
+          })
+        )
       );
   };
-
 
   // 💥 KODUN BAŞLATILMASI
   const container = document.getElementById('root');
@@ -557,3 +561,4 @@ window.onload = () => {
       console.error("Root elementi veya App bileşeni bulunamadı.");
   }
 };
+
