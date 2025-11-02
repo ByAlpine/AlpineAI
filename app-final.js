@@ -18,7 +18,7 @@ window.onload = () => {
   const Routes = window.ReactRouterDOM.Routes;
   const Route = window.ReactRouterDOM.Route;
   const Navigate = window.ReactRouterDOM.Navigate;
-  const Toaster = window.Sonner.Toaster; 
+  const Toaster = window.Sonner.Toaster;
 
 
   // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
@@ -1255,17 +1255,17 @@ window.onload = () => {
   // Bu kod, dosyanın en sonunda çalışır ve 'defer' sayesinde 
   // tüm kütüphaneler yüklendikten sonra tetiklenir.
 
-  const container = document.getElementById('root');
+const container = document.getElementById('root');
 
-  if (container && App) {
-      // Kütüphanelerin gerçekten yüklendiğinden emin olduktan sonra başlat.
-      ReactDOM.createRoot(container).render(
-          React.createElement(React.StrictMode, null, 
-              React.createElement(App, null)
-          )
-      );
-  } else {
-      console.error("Hata: 'root' elementi bulunamadı veya App bileşeni yüklenmedi.");
-  }
+if (container && App) {
+    ReactDOM.createRoot(container).render(
+        React.createElement(React.StrictMode, null, 
+            React.createElement(App, null)
+        )
+    );
+} else {
+    console.error("Hata: 'root' elementi bulunamadı veya App bileşeni yüklenmedi.");
+}
 
 }; // 💥 KRİTİK DÜZELTME: window.onload sarmalayıcısını kapatan parantez.
+
