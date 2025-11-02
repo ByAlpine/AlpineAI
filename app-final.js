@@ -1,26 +1,22 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ NİHAİ TEK DOSYA
- * KRİTİK DÜZELTME: KODUN TAMAMI window.onload bloğundan çıkarıldı ve
- * ReactDOM.render ile React 17 uyumluluğu sağlandı.
+ * KESİN DÜZELTME: React Router v5 (Switch/Redirect) bileşenleri ile uyumlu hale getirildi.
  */
 
 // ----------------------------------------------------
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
 const API = '/api'; 
-const axios = window.axios; // CDN'den yüklenen kütüphaneyi yakala
-const ReactDOM = window.ReactDOM; // CDN'den yüklenen kütüphaneyi yakala
+const axios = window.axios; 
+const ReactDOM = window.ReactDOM; 
 
-// 💥 KRİTİK DÜZELTME: React Router DOM bileşenlerini doğrudan atayın.
-// app-final.js'ten ÖNCE v5.3.0 yüklendiği için artık window.ReactRouterDOM nesnesinin var olduğuna güveniyoruz.
+// 💥 KRİTİK DÜZELTME: v5 bileşenlerini (Switch, Redirect) doğru şekilde atıyoruz.
 const RRD = window.ReactRouterDOM;
 const BrowserRouter = RRD.BrowserRouter;
-const Routes = RRD.Routes;
 const Route = RRD.Route;
-const Navigate = RRD.Navigate;
-const useHistory = RRD.useHistory;
-const Link = RRD.Link;
+const Switch = RRD.Switch; // v6'daki Routes yerine v5'te Switch kullanılır
+const Redirect = RRD.Redirect; // v6'daki Navigate yerine v5'te Redirect kullanılır
 
-// 💥 KRİTİK DÜZELTME 1: Lucide Ikon yerine basit bir yedek bileşen tanımla.
+// --- Lucide Icon Yedek Bileşeni ---
 const Icon = ({ name, className = 'w-5 h-5', size }) => {
     const defaultClass = `inline-flex items-center justify-center ${className} font-bold text-gray-700`;
     let content = name ? name[0] : '?'; 
@@ -314,7 +310,6 @@ const Chat = function ({ token, user, onLogout }) {
             ? 'bg-blue-500 text-white rounded-br-none' 
             : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200';
         
-        // Rehype highlight kaldırıldığı için artık sadece React Markdown kullanılıyor.
         const components = {
             code({ node, inline, className, children, ...props }) {
                 const match = /language-(\w+)/.exec(className || '')
@@ -336,7 +331,6 @@ const Chat = function ({ token, user, onLogout }) {
             React.createElement(
                 'div', 
                 { className: `max-w-3xl px-4 py-3 rounded-xl shadow-md ${msgClass}` },
-                // Markdown kütüphanesinin yüklenip yüklenmediğini kontrol et
                 Markdown?.default ? 
                 React.createElement(
                     Markdown.default, 
@@ -504,37 +498,45 @@ const App = function () {
         setUser(null);
     };
 
-    // React Router DOM bileşenlerinin zaten global olarak tanımlandığına güveniyoruz
-    // Hata kontrolü ve bireysel atama
-    if (!RRD || !RRD.BrowserRouter || !RRD.Routes || !RRD.Route || !RRD.Navigate) {
+    // 💥 KRİTİK KONTROLÜ v5 BİLEŞENLERİNE GÖRE GÜNCELLE
+    if (!RRD || !RRD.BrowserRouter || !RRD.Switch || !RRD.Route || !RRD.Redirect) {
         return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'KRİTİK HATA: React Router kütüphanesi yüklenemedi. index.html dosyasını ve CDN sırasını kontrol edin.');
     }
 
-    // JSX yapısı, RRD'den alınan bileşenler ile global değişkenleri kullanıyor.
+    // 💥 YÖNLENDİRME YAPISI v5 (Switch/Redirect) OLARAK GÜNCELLENDİ
     return React.createElement(
         BrowserRouter,
         null,
         React.createElement(
-            Routes,
+            Switch, // v6'daki Routes yerine Switch kullanıldı
             null,
+            // Route 1: Giriş/Kayıt yolu
             React.createElement(Route, {
                 path: '/auth',
-                element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) 
+                // v5'te 'element' yerine 'render' kullanılır
+                render: () => token 
+                    ? React.createElement(Redirect, { to: '/' }) // Redirect kullanıldı
+                    : React.createElement(Auth, { onLogin: handleLogin })
             }),
+            // Route 2: Ana uygulama yolu
             React.createElement(Route, {
+                exact: true, // v5'te exact: true kullanımı önemlidir
                 path: '/',
-                element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) 
+                // v5'te 'element' yerine 'render' kullanılır
+                render: () => token 
+                    ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) 
+                    : React.createElement(Redirect, { to: '/auth' }) // Redirect kullanıldı
             }),
+            // Route 3: Yakalama yolu (en sonda olmalı)
             React.createElement(Route, {
                 path: '*',
-                element: React.createElement(Navigate, { to: '/' }) 
+                render: () => React.createElement(Redirect, { to: '/' }) // Redirect kullanıldı
             })
         )
     );
 };
 
 // 💥 KODUN BAŞLATILMASI
-// window.onload bloğundan çıkarıldı ve React 17'ye uygun hale getirildi.
 const container = document.getElementById('root');
 
 if (container && ReactDOM && ReactDOM.render) {
