@@ -17,8 +17,7 @@ const API = '/api';  // Tüm API çağrıları için tek bir değişken
   const Routes = window.ReactRouterDOM?.Routes;
   const Route = window.ReactRouterDOM?.Route;
   const Navigate = window.ReactRouterDOM?.Navigate;
-  const Toaster = window.Sonner?.Toaster;
-
+  
 if (!BrowserRouter || !Routes || !Route || !Navigate) {
     console.error("React Router DOM yüklenemedi. CDN linklerini kontrol et.");
     return;
@@ -1270,5 +1269,6 @@ if (container && App) {
 }
 
 }; // 💥 KRİTİK DÜZELTME: window.onload sarmalayıcısını kapatan parantez.
+
 
 
