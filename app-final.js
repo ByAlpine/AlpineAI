@@ -14,13 +14,16 @@ window.onload = () => {
 
   // 💥 KÜTÜPHANE BİLEŞENLERİNİN APP DIŞINDA TANIMLANMASI
   // 'window.onload' sayesinde bu kod çalıştığında, tüm CDN'ler zaten yüklenmiş olacaktır.
-  const BrowserRouter = window.ReactRouterDOM.BrowserRouter;
-  const Routes = window.ReactRouterDOM.Routes;
-  const Route = window.ReactRouterDOM.Route;
-  const Navigate = window.ReactRouterDOM.Navigate;
-  const Toaster = window.Sonner.Toaster;
+  const BrowserRouter = window.ReactRouterDOM?.BrowserRouter;
+  const Routes = window.ReactRouterDOM?.Routes;
+  const Route = window.ReactRouterDOM?.Route;
+  const Navigate = window.ReactRouterDOM?.Navigate;
+  const Toaster = window.Sonner?.Toaster;
 
-
+if (!BrowserRouter || !Routes || !Route || !Navigate) {
+    console.error("React Router DOM yüklenemedi. CDN linklerini kontrol et.");
+    return;
+}
   // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
   const Auth = function ({ onLogin }) {
     // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
@@ -1268,4 +1271,5 @@ if (container && App) {
 }
 
 }; // 💥 KRİTİK DÜZELTME: window.onload sarmalayıcısını kapatan parantez.
+
 
