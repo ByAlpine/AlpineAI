@@ -8,9 +8,8 @@
 window.onload = () => {
   
   // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
-  const BACKEND_URL = 'https://alpinetr-backend.onrender.com';
-  const API = `${BACKEND_URL}/api`;
-  const BASE_API = '/api'; // Auth.js'den alınmıştır
+ // ✅ DÜZELTME: Render'da relative URL kullan
+const API = '/api';  // Tüm API çağrıları için tek bir değişken
 
   // 💥 KÜTÜPHANE BİLEŞENLERİNİN APP DIŞINDA TANIMLANMASI
   // 'window.onload' sayesinde bu kod çalıştığında, tüm CDN'ler zaten yüklenmiş olacaktır.
@@ -52,10 +51,10 @@ if (!BrowserRouter || !Routes || !Route || !Navigate) {
             }
           : formData;
 
-        // BASE_API kullanılıyor, Render'ın proxy yapması beklenir
-        const response = await axios.post(`${BASE_API}${endpoint}`, payload);
+        // API kullanılıyor, Render'ın proxy yapması beklenir
+        const response = await axios.post(`${API}${endpoint}`, payload);
         toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
-        onLogin(response.data.token, response.data.user);
+        onLogin(response.data.access_token, response.data.user);
       } catch (error) {
         toast.error(error.response?.data?.detail || 'An unexpected error occurred');
       } finally {
