@@ -1,39 +1,45 @@
-v<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alpine AI Chat</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
     </style>
+    
+    <!-- Tailwind CSS - Only for development -->
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-<body>
-  <div id="root"></div>
+  <body>
+    <div id="root"></div>
 
- <!-- React önce -->
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- React Core - Load First -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-<!-- React Router DOM sonra -->
-<script src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.development.js"></script>
+    <!-- React Router DOM - Fixed CDN Link -->
+    <script crossorigin src="https://unpkg.com/react-router-dom@6.28.0/dist/umd/react-router-dom.development.js"></script>
 
-<!-- Sonner, Axios -->
-<script src="https://cdn.jsdelivr.net/npm/sonner@latest/dist/sonner.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Sonner Toast -->
+    <script src="https://cdn.jsdelivr.net/npm/sonner@1.4.0/dist/index.umd.js"></script>
 
-<!-- app-final.js en son -->
-<script src="app-final.js"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
 
-</body>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+
+    <!-- React Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/react-markdown@9.0.1/react-markdown.min.js"></script>
+
+    <!-- Rehype Highlight -->
+    <script src="https://cdn.jsdelivr.net/npm/rehype-highlight@7.0.0/index.min.js"></script>
+
+    <!-- App Script - Load Last -->
+    <script src="app-final.js"></script>
+  </body>
 </html>
-
-
-
-
-
-
-
-
 
