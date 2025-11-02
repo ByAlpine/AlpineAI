@@ -4,7 +4,13 @@
  */
 
 window.onload = () => {
-  
+  // KRİTİK ZAMANLAMA KONTROLÜ
+  // Tüm kütüphanelerin yüklenmesi için bir saniye bekler.
+  // Bu, CDN'lerin geç yüklenmesi sorununu çözer.
+  if (!window.React || !window.ReactDOM || !window.ReactRouterDOM) {
+      setTimeout(window.onload, 100);
+      return;
+  }
   // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
   const API = '/api';  // Tüm API çağrıları için tek bir değişken
 
@@ -560,5 +566,6 @@ window.onload = () => {
       console.error("Root elementi veya App bileşeni bulunamadı.");
   }
 };
+
 
 
