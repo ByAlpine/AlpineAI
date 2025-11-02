@@ -1,14 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+/* Alpine AI Chat Styles */
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-html, body, #root {
-  height: 100%;
-  overflow: hidden;
 }
 
 body {
@@ -19,14 +14,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.App {
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Smooth transitions for interactive elements */
-button, input {
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 }
 
 /* Custom scrollbar */
@@ -36,15 +26,95 @@ button, input {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 10px;
+  background: #f1f1f1;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #3b82f6, #6366f1);
-  border-radius: 10px;
+  background: #888;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #2563eb, #4f46e5);
+  background: #555;
+}
+
+/* Markdown styles */
+.markdown-content {
+  line-height: 1.6;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.markdown-content p {
+  margin-bottom: 1em;
+}
+
+.markdown-content code {
+  background: #f4f4f4;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background: #2d2d2d;
+  color: #f8f8f2;
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-content pre code {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-left: 2em;
+  margin-bottom: 1em;
+}
+
+.markdown-content li {
+  margin-bottom: 0.5em;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #666;
+}
+
+.markdown-content a {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.markdown-content a:hover {
+  color: #4338ca;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
 }
