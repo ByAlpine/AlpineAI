@@ -457,11 +457,30 @@ async def delete_conversation(conversation_id: str, current_user: User = Depends
 # =========================================================================
 # GENEL YAPILANDIRMA
 # =========================================================================
+# ... (Diğer tüm kodlar burada bitiyor, en son delete_conversation endpoint'i ile)
+
+@api_router.delete("/chat/conversation/{conversation_id}")
+async def delete_conversation(conversation_id: str, current_user: User = Depends(get_current_user)):
+    """Konuşmayı ve mesajlarını siler."""
+    conv_result = await db.conversations.delete_one({'id': conversation_id, 'user_id': current_user.id})
+    if conv_result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found or not authorized"
+        )
+
+    await db.messages.delete_many({'conversation_id': conversation_id})
+    return {"message": "Conversation and messages deleted successfully"}
+
+
+# =========================================================================
+# GENEL YAPILANDIRMA VE STATİK DOSYALAR (DÜZELTİLMİŞ BLOK)
+# =========================================================================
 
 # Router'ı ekle
 app.include_router(api_router)
 
-# CORS ayarları güvenli hale getirildi
+# CORS ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -483,27 +502,18 @@ async def shutdown_db_client():
     client.close()
     logging.info("MongoDB connection closed.")
 
-# API root endpoint
-# server.py dosyasının en sonuna ekleyin veya mevcut statik kısmı düzeltin.
-# =========================================================================
-# STATİK DOSYA SUNUMU (Frontend Entegrasyonu)
-# =========================================================================
+# -------------------------------------------------------------------------
+# KRİTİK STATİK DOSYA SUNUMU
+# -------------------------------------------------------------------------
 
-# Proje kök dizinini (Render'ın çektiği dizin) Statik Dosya sunumu için kullan.
+# Proje kök dizinini Statik Dosya sunumu için kullan.
 STATIC_DIR = "." 
-# "/static" yerine kök dizini ("/") mount ediyoruz ve html=True ayarlıyoruz.
-# Bu, tüm yolların (/, /auth, /chat) index.html'ye yönlendirilmesini sağlar.
+# '/' path'ine gelen tüm istekleri STATIC_DIR'daki index.html'ye yönlendirir.
+# Bu, API rotaları hariç tüm isteklerin frontend'e gitmesini sağlar.
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
-
-@app.get("/")
-async def root_path():
-    """Kök yola gelen istekleri StaticFiles'ın varsayılan index.html sunumuna bırakır."""
-    # Bu fonksiyon normalde gerekmez, ancak StaticFiles'ın doğru çalışmasını garantiler
-    # ve Render'ın /'daki GET isteğine HTML döndürmesini sağlar.
-    pass # StaticFiles /'ı zaten ele alacak
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for Render."""
+    """Render için Health check endpoint'i."""
+    # Bu, / mount'undan etkilenmez ve Render'ın durumu kontrol etmesini sağlar.
     return {"status": "healthy"}
-
