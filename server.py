@@ -45,22 +45,24 @@ api_router = APIRouter(prefix="/api")
 
 MONGO_URL = os.getenv("MONGO_URL")
 DB_NAME = os.getenv("DB_NAME", "alpine_ai_db")
-SECRET_KEY = os.getenv("JWT_SECRET")
+SECRET_KEY = os.getenv("JWT_SECRET") 
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "168"))
 
 # Gemini Model Ayarları
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash") 
 
 # =========================================================================
-# VERİTABANI BAĞLANTISI
+# VERİTABANI BAĞLANTISI (KRİTİK HATA NOKTASI)
 # =========================================================================
 
 if not MONGO_URL:
-    raise ValueError("MONGO_URL environment variable is not set")
+    # Bu hata, Ortam Değişkeni olarak MONGO_URL tanımlanmadığında oluşur.
+    raise ValueError("MONGO_URL environment variable is not set") 
 
-client = AsyncIOMotorClient(MONGO_URL)
+client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+# ... ve ping komutunu içeren try/except bloğu eklenmiş olmalıydı.
 db = client.get_database(DB_NAME)
 
 # =========================================================================
