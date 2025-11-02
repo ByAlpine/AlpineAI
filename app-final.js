@@ -492,7 +492,7 @@ window.onload = () => {
       );
   };
 
-  // --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
+ // --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
   const App = function () {
       const [token, setToken] = React.useState(localStorage.getItem('token'));
       const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
@@ -511,26 +511,26 @@ window.onload = () => {
           setUser(null);
       };
 
-      // 💥 KRİTİK DÜZELTME: Destructuring yerine bireysel atama yapıyoruz.
-      // Bu, "Routes" undefined hatasını çözer.
-      const ReactRouterDOM = window.ReactRouterDOM || {};
-      
-      const BrowserRouter = ReactRouterDOM.BrowserRouter;
-      const Routes = ReactRouterDOM.Routes; 
-      const Route = ReactRouterDOM.Route;
-      const Navigate = ReactRouterDOM.Navigate;
+      // 💥 KESİN ÇÖZÜM: window.ReactRouterDOM'u geçici bir değişkene atıyoruz
+      // ve gerekli tüm bileşenleri bu değişkenden alıyoruz.
+      const RRD = window.ReactRouterDOM;
 
-
-      if (!BrowserRouter || !Routes || !Route || !Navigate) {
-          return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'Routing kütüphanesi yüklenemedi. CDN bağlantısını veya önbelleği kontrol edin.');
+      if (!RRD || !RRD.BrowserRouter || !RRD.Routes || !RRD.Route || !RRD.Navigate) {
+          return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'Routing kütüphanesi yüklenemedi. Lütfen CDN bağlantısını ve tarayıcı önbelleğini kontrol edin.');
       }
 
-      // JSX yapısı, globalden alınan bileşenler ile global değişkenleri kullanıyor.
+      // Bileşenleri doğrudan RRD'den alıyoruz.
+      const BrowserRouter = RRD.BrowserRouter;
+      const Routes = RRD.Routes;
+      const Route = RRD.Route;
+      const Navigate = RRD.Navigate;
+
+      // JSX yapısı, RRD'den alınan bileşenler ile global değişkenleri kullanıyor.
       return React.createElement(
-        BrowserRouter, // Globalden alındı
+        BrowserRouter,
         null,
         React.createElement(
-          Routes, // Globalden alındı
+          Routes,
           null,
           React.createElement(Route, {
             path: '/auth',
@@ -547,7 +547,6 @@ window.onload = () => {
         )
       );
   };
-
   // 💥 KODUN BAŞLATILMASI
   const container = document.getElementById('root');
 
@@ -561,4 +560,5 @@ window.onload = () => {
       console.error("Root elementi veya App bileşeni bulunamadı.");
   }
 };
+
 
