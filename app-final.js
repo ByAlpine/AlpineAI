@@ -498,74 +498,63 @@ window.onload = () => {
       );
   };
 
- // --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
-  const App = function () {
-    // ... (window.onload bloğunun içinde)
-  const App = function () {
-      // ... (handleLogin, handleLogout vb. kodlar)
+// --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
+  const App = function () {
+      // HOOK'lar
+      const [token, setToken] = React.useState(localStorage.getItem('token'));
+      const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
 
-      // 💥 KESİN GARANTİ: React Router DOM'un her türlü yapısını yakalamak için
-      const RRD = window.ReactRouterDOM;
+      // HANDLER'lar
+      const handleLogin = (newToken, newUser) => {
+          localStorage.setItem('token', newToken);
+          localStorage.setItem('user', JSON.stringify(newUser));
+          setToken(newToken);
+          setUser(newUser);
+      };
 
-      // Hatanın tam olarak hangi değişkenden kaynaklandığını görelim.
-      const BrowserRouter = RRD?.BrowserRouter || RRD?.default?.BrowserRouter;
-      const Routes = RRD?.Routes || RRD?.default?.Routes;
-      const Route = RRD?.Route || RRD?.default?.Route;
-      const Navigate = RRD?.Navigate || RRD?.default?.Navigate;
-      // ... (Devamı)
-      const [token, setToken] = React.useState(localStorage.getItem('token'));
-      const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
+      const handleLogout = () => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+      };
 
-      const handleLogin = (newToken, newUser) => {
-          localStorage.setItem('token', newToken);
-          localStorage.setItem('user', JSON.stringify(newUser));
-          setToken(newToken);
-          setUser(newUser);
-      };
+      // 💥 KESİN ÇÖZÜM: window.ReactRouterDOM'u geçici bir değişkene atıyoruz
+      // ve gerekli tüm bileşenleri bu değişkenden alıyoruz.
+      const RRD = window.ReactRouterDOM;
 
-      const handleLogout = () => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
-      };
+      // Hata kontrolü ve bireysel atama (En güvenli yöntem)
+      if (!RRD || !RRD.BrowserRouter || !RRD.Routes || !RRD.Route || !RRD.Navigate) {
+          return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'KRİTİK HATA: React Router kütüphanesi yüklenemedi. Sunucu dağıtımını ve tarayıcı önbelleğini kontrol edin.');
+      }
 
-      // 💥 KESİN ÇÖZÜM: window.ReactRouterDOM'u geçici bir değişkene atıyoruz
-      // ve gerekli tüm bileşenleri bu değişkenden alıyoruz.
-      const RRD = window.ReactRouterDOM;
+      const BrowserRouter = RRD.BrowserRouter;
+      const Routes = RRD.Routes;
+      const Route = RRD.Route;
+      const Navigate = RRD.Navigate;
 
-      if (!RRD || !RRD.BrowserRouter || !RRD.Routes || !RRD.Route || !RRD.Navigate) {
-          return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'Routing kütüphanesi yüklenemedi. Lütfen CDN bağlantısını ve tarayıcı önbelleğini kontrol edin.');
-      }
-
-      // Bileşenleri doğrudan RRD'den alıyoruz.
-      const BrowserRouter = RRD.BrowserRouter;
-      const Routes = RRD.Routes;
-      const Route = RRD.Route;
-      const Navigate = RRD.Navigate;
-
-      // JSX yapısı, RRD'den alınan bileşenler ile global değişkenleri kullanıyor.
-      return React.createElement(
-        BrowserRouter,
-        null,
-        React.createElement(
-          Routes,
-          null,
-          React.createElement(Route, {
-            path: '/auth',
-            element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) 
-          }),
-          React.createElement(Route, {
-            path: '/',
-            element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) 
-          }),
-          React.createElement(Route, {
-            path: '*',
-            element: React.createElement(Navigate, { to: '/' }) 
-          })
-        )
-      );
-  };
+      // JSX yapısı, RRD'den alınan bileşenler ile global değişkenleri kullanıyor.
+      return React.createElement(
+        BrowserRouter,
+        null,
+        React.createElement(
+          Routes,
+          null,
+          React.createElement(Route, {
+            path: '/auth',
+            element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) 
+          }),
+          React.createElement(Route, {
+            path: '/',
+            element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) 
+          }),
+          React.createElement(Route, {
+            path: '*',
+            element: React.createElement(Navigate, { to: '/' }) 
+          })
+        )
+      );
+  };
   // 💥 KODUN BAŞLATILMASI
   const container = document.getElementById('root');
 
@@ -579,6 +568,7 @@ window.onload = () => {
       console.error("Root elementi veya App bileşeni bulunamadı.");
   }
 };
+
 
 
 
