@@ -1,14 +1,23 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ TEK DOSYA (JSX -> Saf JavaScript)
- * NİHAİ DÜZELTME: App bileşeni içindeki tüm kütüphane bileşenleri, 
- * Chat ve Auth'da olduğu gibi yerel takma ad (local alias) ile tanımlanmıştır 
- * (window.X.Y -> const Y = window.X.Y;).
+ * NİHAİ DÜZELTME: Kütüphane değişkenleri (Router bileşenleri ve Toaster) 
+ * App bileşeninin DIŞINDA tanımlanarak yüklenme zamanlaması garanti altına alındı.
  */
 
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
 const BACKEND_URL = 'https://alpinetr-backend.onrender.com';
 const API = `${BACKEND_URL}/api`;
 const BASE_API = '/api'; // Auth.js'den alınmıştır
+
+// 💥 KRİTİK ZAMANLAMA DÜZELTMESİ: KÜTÜPHANE BİLEŞENLERİNİN APP DIŞINDA TANIMLANMASI
+// Bu, kütüphaneler (CDN'ler) yüklendiği anda global window objesinden 
+// Router bileşenlerini ve Toaster'ı almayı garanti eder.
+const BrowserRouter = window.ReactRouterDOM ? window.ReactRouterDOM.BrowserRouter : 'div';
+const Routes = window.ReactRouterDOM ? window.ReactRouterDOM.Routes : 'div';
+const Route = window.ReactRouterDOM ? window.ReactRouterDOM.Route : 'div';
+const Navigate = window.ReactRouterDOM ? window.ReactRouterDOM.Navigate : 'div';
+const Toaster = window.Sonner ? window.Sonner.Toaster : 'div'; 
+
 
 // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
 const Auth = function ({ onLogin }) {
@@ -1177,14 +1186,8 @@ const App = function () {
   // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
   const useState = React.useState;
   const useEffect = React.useEffect;
-
-  // 💥 KRİTİK VE NİHAİ DÜZELTME: Kütüphane bileşenlerine yerel takma ad (alias) oluşturuluyor
-  // Bu, UMD (Universal Module Definition) paketlerinde en güvenilir yöntemdir.
-  const BrowserRouter = window.ReactRouterDOM.BrowserRouter;
-  const Routes = window.ReactRouterDOM.Routes;
-  const Route = window.ReactRouterDOM.Route;
-  const Navigate = window.ReactRouterDOM.Navigate;
-  const Toaster = window.Sonner.Toaster; // Sonner için de alias kullanılıyor
+  
+  // App bileşeni artık globalde tanımlanan (BrowserRouter, Routes vb.) değişkenleri kullanıyor.
   
   const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
@@ -1219,32 +1222,32 @@ const App = function () {
     return React.createElement('div', { className: 'flex items-center justify-center min-h-screen text-lg font-bold' }, 'Loading...');
   }
 
-  // App Bileşeni Artık React.createElement ile yerel takma adları kullanıyor.
+  // App Bileşeni Artık React.createElement ile global değişkenleri kullanıyor.
   return React.createElement(
-    BrowserRouter, // Yerel takma ad kullanıldı
+    BrowserRouter, // Globalden alındı
     null,
-    React.createElement(Toaster, { // Yerel takma ad kullanıldı
+    React.createElement(Toaster, { // Globalden alındı
       position: 'bottom-center'
     }),
     React.createElement(
-      Routes, // Yerel takma ad kullanıldı
+      Routes, // Globalden alındı
       null,
       React.createElement(Route, {
         path: '/auth',
-        element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) // Yerel takma ad kullanıldı
+        element: token ? React.createElement(Navigate, { to: '/' }) : React.createElement(Auth, { onLogin: handleLogin }) 
       }),
       React.createElement(Route, {
         path: '/',
-        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) // Yerel takma ad kullanıldı
+        element: token ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) : React.createElement(Navigate, { to: '/auth' }) 
       }),
       React.createElement(Route, {
         path: '*',
-        element: React.createElement(Navigate, { to: '/' }) // Yerel takma ad kullanıldı
+        element: React.createElement(Navigate, { to: '/' }) 
       })
     )
   );
 };
 
 
-// BU GLOBAL ATAMA ARTIK KOD BLOĞUNUN EN SONUNDA VE DOĞRU YERDE
+// BU GLOBAL ATAMA KOD BLOĞUNUN EN SONUNDADIR.
 window.App = App;
