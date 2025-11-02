@@ -484,16 +484,26 @@ async def shutdown_db_client():
     logging.info("MongoDB connection closed.")
 
 # API root endpoint
+# server.py dosyasının en sonuna ekleyin veya mevcut statik kısmı düzeltin.
+# =========================================================================
+# STATİK DOSYA SUNUMU (Frontend Entegrasyonu)
+# =========================================================================
+
+# Proje kök dizinini (Render'ın çektiği dizin) Statik Dosya sunumu için kullan.
+STATIC_DIR = "." 
+# "/static" yerine kök dizini ("/") mount ediyoruz ve html=True ayarlıyoruz.
+# Bu, tüm yolların (/, /auth, /chat) index.html'ye yönlendirilmesini sağlar.
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
+
 @app.get("/")
 async def root_path():
-    """API root endpoint."""
-    return {
-        "message": "Alpine AI Backend API",
-        "version": "1.0.0",
-        "status": "running"
-    }
+    """Kök yola gelen istekleri StaticFiles'ın varsayılan index.html sunumuna bırakır."""
+    # Bu fonksiyon normalde gerekmez, ancak StaticFiles'ın doğru çalışmasını garantiler
+    # ve Render'ın /'daki GET isteğine HTML döndürmesini sağlar.
+    pass # StaticFiles /'ı zaten ele alacak
 
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Render."""
     return {"status": "healthy"}
+
