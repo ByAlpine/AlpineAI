@@ -1,1211 +1,480 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ NİHAİ TEK DOSYA
- * DÜZELTME NOTU: Tüm kod, 'window.onload' içine sarılarak, tüm CDN 
- * kütüphanelerinin (React, ReactRouterDOM, Sonner) yüklenmesinin
- * tamamlanması beklenmiştir. Bu, 'Routes' undefined hatasını çözecektir.
+ * DÜZELTME NOTU: Sonner Toast ve Rehype Highlight kütüphaneleri, CDN modül yükleme hatası nedeniyle geçici olarak kaldırıldı.
  */
 
 window.onload = () => {
   
   // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
- // ✅ DÜZELTME: Render'da relative URL kullan
+  // ✅ DÜZELTME: Render'da relative URL kullan
 const API = '/api';  // Tüm API çağrıları için tek bir değişken
 
   // 💥 KÜTÜPHANE BİLEŞENLERİNİN APP DIŞINDA TANIMLANMASI
-  // 'window.onload' sayesinde bu kod çalıştığında, tüm CDN'ler zaten yüklenmiş olacaktır.
   const BrowserRouter = window.ReactRouterDOM?.BrowserRouter;
   const Routes = window.ReactRouterDOM?.Routes;
   const Route = window.ReactRouterDOM?.Route;
   const Navigate = window.ReactRouterDOM?.Navigate;
-  
+  // const Toaster = window.Sonner?.Toaster; // KALDIRILDI
+
 if (!BrowserRouter || !Routes || !Route || !Navigate) {
     console.error("React Router DOM yüklenemedi. CDN linklerini kontrol et.");
     return;
 }
   // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
   const Auth = function ({ onLogin }) {
-    // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
-    const useState = React.useState;
-    const toast = Sonner.toast;
-    const axios = window.axios; 
-
-    const [isLogin, setIsLogin] = useState(true);
-    const [formData, setFormData] = useState({
-      email: '',
-      password: '',
-      full_name: ''
-    });
-    const [loading, setLoading] = useState(false);
+    // HOOK'lar ve KÜTÜPHANELER
+    const [isLogin, setIsLogin] = React.useState(true);
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [fullName, setFullName] = React.useState('');
+    const [isLoading, setIsLoading] = React.useState(false);
+    const [error, setError] = React.useState(null);
 
     const handleSubmit = async (e) => {
-      e.preventDefault();
-      setLoading(true);
+        e.preventDefault();
+        setError(null);
+        setIsLoading(true);
 
-      try {
-        const endpoint = isLogin ? '/auth/login' : '/auth/register';
-        const payload = isLogin
-          ? {
-              email: formData.email,
-              password: formData.password
+        const endpoint = isLogin ? `${API}/auth/login` : `${API}/auth/register`;
+        const data = isLogin 
+            ? { email, password } 
+            : { email, password, full_name: fullName };
+
+        try {
+            const response = await axios.post(endpoint, data);
+            
+            if (response.data.access_token) {
+                // Toaster.success(isLogin ? "Giriş başarılı!" : "Kayıt başarılı! Giriş yapılıyor.");
+                onLogin(response.data.access_token, response.data.user);
+            } else {
+                // Toaster.error("Beklenmedik bir hata oluştu.");
+                setError("Beklenmedik bir hata oluştu.");
             }
-          : formData;
-
-        // API kullanılıyor, Render'ın proxy yapması beklenir
-        const response = await axios.post(`${API}${endpoint}`, payload);
-        toast.success(isLogin ? 'Welcome back!' : 'Account created successfully!');
-        onLogin(response.data.access_token, response.data.user);
-      } catch (error) {
-        toast.error(error.response?.data?.detail || 'An unexpected error occurred');
-      } finally {
-        setLoading(false);
-      }
+        } catch (err) {
+            const errorMsg = err.response?.data?.detail || "Bir hata oluştu. Lütfen tekrar deneyin.";
+            // Toaster.error(errorMsg);
+            setError(errorMsg);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleChange = (e) => {
-      setFormData({
-        ...formData,
-        [e.target.name]: e.target.value
-      });
+    const isFormValid = () => {
+        if (!email || !password) return false;
+        if (!isLogin && !fullName) return false;
+        return true;
     };
+
+    const inputClass = "w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out";
+    const buttonClass = `w-full p-3 text-white font-semibold rounded-lg transition duration-300 ease-in-out ${
+        isFormValid() && !isLoading ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-blue-300 cursor-not-allowed'
+    }`;
+    const linkClass = "text-blue-600 hover:text-blue-800 font-medium transition duration-150 ease-in-out";
 
     return React.createElement(
-      'div',
-      {
-        className: 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4'
-      },
-      React.createElement(
-        'div',
-        {
-          className: 'w-full max-w-md'
-        },
+        'div', 
+        { className: 'flex items-center justify-center min-h-screen bg-gray-50' },
         React.createElement(
-          'div',
-          {
-            className: 'text-center mb-8'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl mb-4 shadow-lg'
-            },
-            React.createElement(
-              'svg',
-              {
-                className: 'w-10 h-10 text-white',
-                fill: 'none',
-                stroke: 'currentColor',
-                viewBox: '0 0 24 24'
-              },
-              React.createElement('path', {
-                strokeLinecap: 'round',
-                strokeLinejoin: 'round',
-                strokeWidth: 2,
-                d: 'M13 10V3L4 14h7v7l9-11h-7z'
-              })
+            'div', 
+            { className: 'w-full max-w-md p-8 space-y-8 bg-white shadow-xl rounded-2xl' },
+            React.createElement('h2', { className: 'text-center text-3xl font-bold text-gray-900' }, isLogin ? 'Giriş Yap' : 'Kayıt Ol'),
+            error && React.createElement('div', { className: 'p-3 text-sm font-medium text-red-700 bg-red-100 rounded-lg' }, error),
+            React.createElement('form', { className: 'mt-8 space-y-6', onSubmit: handleSubmit },
+                !isLogin && React.createElement('div', null, React.createElement('label', { htmlFor: 'full-name', className: 'sr-only' }, 'Ad Soyad'), React.createElement('input', { id: 'full-name', name: 'full-name', type: 'text', required: true, className: inputClass, placeholder: 'Ad Soyad', value: fullName, onChange: (e) => setFullName(e.target.value) })),
+                React.createElement('div', null, React.createElement('label', { htmlFor: 'email-address', className: 'sr-only' }, 'E-posta Adresi'), React.createElement('input', { id: 'email-address', name: 'email', type: 'email', required: true, className: inputClass, placeholder: 'E-posta Adresi', value: email, onChange: (e) => setEmail(e.target.value) })),
+                React.createElement('div', null, React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'), React.createElement('input', { id: 'password', name: 'password', type: 'password', required: true, className: inputClass, placeholder: 'Şifre', value: password, onChange: (e) => setPassword(e.target.value) })),
+                React.createElement('div', null, React.createElement('button', { type: 'submit', disabled: !isFormValid() || isLoading, className: buttonClass }, isLoading ? 'Yükleniyor...' : (isLogin ? 'Giriş Yap' : 'Kayıt Ol'))),
+                React.createElement('div', { className: 'text-center' }, 
+                    React.createElement('a', { href: '#', className: linkClass, onClick: (e) => { e.preventDefault(); setIsLogin(!isLogin); setError(null); } }, 
+                        isLogin ? 'Hesabınız yok mu? Kayıt Olun.' : 'Zaten hesabınız var mı? Giriş Yapın.'
+                    )
+                )
             )
-          ),
-          React.createElement(
-            'h1',
-            {
-              className: 'text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent',
-              style: {
-                fontFamily: 'Space Grotesk, sans-serif'
-              }
-            },
-            'Alpine AI'
-          ),
-          React.createElement(
-            'p',
-            {
-              className: 'text-gray-600 mt-2',
-              style: {
-                fontFamily: 'Inter, sans-serif'
-              }
-            },
-            'Your intelligent assistant powered by Gemini'
-          )
-        ),
-        React.createElement(
-          'div',
-          {
-            className: 'border-0 shadow-xl backdrop-blur-sm bg-white/80 rounded-lg border bg-card text-card-foreground',
-            'data-testid': 'auth-card'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'p-6'
-            },
-            React.createElement(
-              'h2',
-              {
-                className: 'text-2xl font-bold',
-                style: {
-                  fontFamily: 'Space Grotesk, sans-serif'
-                }
-              },
-              isLogin ? 'Welcome Back' : 'Create Account'
-            ),
-            React.createElement(
-              'p',
-              {
-                className: 'text-muted-foreground',
-                style: {
-                  fontFamily: 'Inter, sans-serif'
-                }
-              },
-              isLogin ? 'Sign in to continue your conversations' : 'Get started with Alpine AI'
-            )
-          ),
-          React.createElement(
-            'div',
-            {
-              className: 'p-6 pt-0'
-            },
-            React.createElement(
-              'form',
-              {
-                onSubmit: handleSubmit,
-                className: 'space-y-4'
-              },
-              !isLogin &&
-                React.createElement(
-                  'div',
-                  {
-                    className: 'space-y-2'
-                  },
-                  React.createElement(
-                    'label',
-                    {
-                      htmlFor: 'full_name',
-                      style: {
-                        fontFamily: 'Inter, sans-serif'
-                      }
-                    },
-                    'Full Name'
-                  ),
-                  React.createElement('input', {
-                    id: 'full_name',
-                    name: 'full_name',
-                    type: 'text',
-                    placeholder: 'John Doe',
-                    value: formData.full_name,
-                    onChange: handleChange,
-                    required: !isLogin,
-                    'data-testid': 'full-name-input',
-                    className:
-                      'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500'
-                  })
-                ),
-              React.createElement(
-                'div',
-                {
-                  className: 'space-y-2'
-                },
-                React.createElement(
-                  'label',
-                  {
-                    htmlFor: 'email',
-                    style: {
-                      fontFamily: 'Inter, sans-serif'
-                    }
-                  },
-                  'Email'
-                ),
-                React.createElement('input', {
-                  id: 'email',
-                  name: 'email',
-                  type: 'email',
-                  placeholder: 'your@email.com',
-                  value: formData.email,
-                  onChange: handleChange,
-                  required: true,
-                  'data-testid': 'email-input',
-                  className:
-                    'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500'
-                })
-              ),
-              React.createElement(
-                'div',
-                {
-                  className: 'space-y-2'
-                },
-                React.createElement(
-                  'label',
-                  {
-                    htmlFor: 'password',
-                    style: {
-                      fontFamily: 'Inter, sans-serif'
-                    }
-                  },
-                  'Password'
-                ),
-                React.createElement('input', {
-                  id: 'password',
-                  name: 'password',
-                  type: 'password',
-                  placeholder: '••••••••',
-                  value: formData.password,
-                  onChange: handleChange,
-                  required: true,
-                  'data-testid': 'password-input',
-                  className:
-                    'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500'
-                })
-              ),
-              React.createElement(
-                'button',
-                {
-                  type: 'submit',
-                  className:
-                    'w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-6 rounded-lg shadow-lg transition-all duration-200 hover:shadow-xl inline-flex items-center justify-center whitespace-nowrap text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
-                  disabled: loading,
-                  'data-testid': 'submit-button',
-                  style: {
-                    fontFamily: 'Inter, sans-serif'
-                  }
-                },
-                loading
-                  ? 'Please wait...'
-                  : isLogin
-                  ? 'Sign In'
-                  : 'Create Account'
-              )
-            ),
-            React.createElement(
-              'div',
-              {
-                className: 'mt-6 text-center'
-              },
-              React.createElement(
-                'button',
-                {
-                  type: 'button',
-                  onClick: () => setIsLogin(!isLogin),
-                  className:
-                    'text-indigo-600 hover:text-indigo-700 font-medium transition-colors',
-                  'data-testid': 'toggle-auth-mode',
-                  style: {
-                    fontFamily: 'Inter, sans-sa'
-                  }
-                },
-                isLogin
-                  ? "Don't have an account? Sign up"
-                  : 'Already have an account? Sign in'
-              )
-            )
-          )
         )
-      )
     );
   };
 
   // --- Chat Bileşeni (JSX'ten dönüştürülmüş) ---
   const Chat = function ({ token, user, onLogout }) {
-    // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
-    const useState = React.useState;
-    const useEffect = React.useEffect;
-    const useRef = React.useRef;
-    const toast = Sonner.toast;
-    const axios = window.axios;
-    const ReactMarkdown = window.ReactMarkdown;
-    const rehypeHighlight = window.rehypeHighlight;
-    const Lucide = window.lucide;
-    
-    // İKONLAR (Lucide yüklenemezse varsayılan 'div' kullan)
-    const PlusCircle = Lucide ? Lucide.PlusCircle : 'div';
-    const Send = Lucide ? Lucide.Send : 'div';
-    const ImageIcon = Lucide ? Lucide.Image : 'div';
-    const LogOut = Lucide ? Lucide.LogOut : 'div';
-    const Trash2 = Lucide ? Lucide.Trash2 : 'div';
-    const Menu = Lucide ? Lucide.Menu : 'div';
-    const X = Lucide ? Lucide.X : 'div';
-    
-    const [conversations, setConversations] = useState([]);
-    const [currentConversation, setCurrentConversation] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [inputMessage, setInputMessage] = useState('');
-    const [selectedImage, setSelectedImage] = useState(null);
-    const [imagePreview, setImagePreview] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [sidebarOpen, setSidebarOpen] = useState(false);
-    const messagesEndRef = useRef(null);
-    const fileInputRef = useRef(null);
+    const [conversations, setConversations] = React.useState([]);
+    const [selectedConvId, setSelectedConvId] = React.useState(null);
+    const [messages, setMessages] = React.useState([]);
+    const [input, setInput] = React.useState('');
+    const [isSending, setIsSending] = React.useState(false);
+    const [error, setError] = React.useState(null);
+    const messagesEndRef = React.useRef(null);
+    const [sidebarOpen, setSidebarOpen] = React.useState(false);
+    const [showDeleteModal, setShowDeleteModal] = React.useState(false);
 
-    useEffect(() => {
-      const handleResize = () => {
-        const isMobile = window.innerWidth < 768;
-        setSidebarOpen(!isMobile);
-      };
+    const Markdown = window.ReactMarkdown;
+    const { useEffect, useState, useRef, useCallback } = React;
+    const { Check, X, Menu, LogOut, MessageSquare, Plus, Trash2, Send } = window.lucide;
+    const rehypeHighlight = window.rehypeHighlight; // Rehype Highlight kaldırıldı, bu tanım boş dönecek, o yüzden kaldıralım.
 
-      handleResize();
-      window.addEventListener('resize', handleResize);
-      loadConversations();
-      return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    // Auth Header
+    const getHeaders = useCallback(() => ({
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    }), [token]);
 
-    useEffect(() => {
-      if (currentConversation) {
-        loadMessages(currentConversation.id);
-      }
-    }, [currentConversation]);
-
-    useEffect(() => {
-      scrollToBottom();
-    }, [messages]);
-
+    // Mesajlar ekranını en alta kaydırma
     const scrollToBottom = () => {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: 'smooth'
-      });
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
+    useEffect(scrollToBottom, [messages]);
 
-    const loadConversations = async () => {
-      try {
-        const response = await axios.get(`${API}/chat/conversations`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        const cleanedConversations = response.data.map((conv) => ({
-          ...conv,
-          title:
-            conv.title.length > 30
-              ? conv.title.substring(0, 27) + '...'
-              : conv.title
-        }));
-        setConversations(cleanedConversations);
-        if (cleanedConversations.length > 0 && !currentConversation) {
-          setCurrentConversation(cleanedConversations[0]);
+    // Sohbetleri Yükleme
+    const fetchConversations = useCallback(async () => {
+        try {
+            const response = await axios.get(`${API}/chat/conversations`, { headers: getHeaders() });
+            setConversations(response.data);
+            if (response.data.length > 0 && !selectedConvId) {
+                // Eğer daha önce seçili bir ID yoksa, en yeni olanı seç.
+                setSelectedConvId(response.data[0].id);
+            } else if (response.data.length > 0 && selectedConvId) {
+                 // Eğer seçili olan silindiyse veya artık listede yoksa ilkini seç
+                 const exists = response.data.some(conv => conv.id === selectedConvId);
+                 if (!exists) setSelectedConvId(response.data[0].id);
+            }
+        } catch (err) {
+            setError("Sohbetler yüklenirken bir hata oluştu.");
         }
-      } catch (error) {
-        console.error('Failed to load conversations:', error);
-      }
+    }, [getHeaders, selectedConvId]);
+
+    // Mesajları Yükleme
+    const fetchMessages = useCallback(async (convId) => {
+        if (!convId) {
+            setMessages([]);
+            return;
+        }
+        try {
+            const response = await axios.get(`${API}/chat/messages/${convId}`, { headers: getHeaders() });
+            setMessages(response.data);
+        } catch (err) {
+            setError("Mesajlar yüklenirken bir hata oluştu.");
+            setMessages([]);
+        }
+    }, [getHeaders]);
+    
+    // Sohbet ve Mesajları senkronize et
+    useEffect(() => {
+        fetchConversations();
+    }, [fetchConversations]);
+
+    useEffect(() => {
+        fetchMessages(selectedConvId);
+    }, [selectedConvId, fetchMessages]);
+
+    // Yeni Sohbet Başlatma
+    const startNewConversation = async () => {
+        try {
+            const response = await axios.post(`${API}/chat/conversation/new`, { title: "Yeni Sohbet" }, { headers: getHeaders() });
+            const newConv = response.data;
+            setConversations([newConv, ...conversations]);
+            setSelectedConvId(newConv.id);
+            setMessages([]);
+            setSidebarOpen(false); // Mobil cihazda otomatik kapat
+        } catch (err) {
+            setError("Yeni sohbet başlatılamadı.");
+        }
     };
 
-    const loadMessages = async (conversationId) => {
-      try {
-        const response = await axios.get(
-          `${API}/chat/conversation/${conversationId}/messages`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
+    // Mesaj Gönderme
+    const handleSend = async (e) => {
+        e.preventDefault();
+        if (!input.trim() || isSending) return;
+
+        let convId = selectedConvId;
+        let newConvTitle = null;
+
+        if (!convId && conversations.length === 0) {
+            // Hiç sohbet yoksa, önce yeni sohbet oluştur
+            try {
+                const response = await axios.post(`${API}/chat/conversation/new`, { title: input.substring(0, 30) }, { headers: getHeaders() });
+                convId = response.data.id;
+                newConvTitle = response.data.title;
+                setConversations([response.data]); // Yeni oluşturulan sohbeti listeye ekle
+                setSelectedConvId(convId);
+            } catch (err) {
+                setError("Yeni sohbet oluşturulurken hata.");
+                return;
             }
-          }
-        );
-        setMessages(response.data);
-      } catch (error) {
-        console.error('Failed to load messages:', error);
-      }
+        } else if (!convId) {
+            // Eğer seçili sohbet yoksa, listedeki ilkini kullan
+            convId = conversations[0].id;
+            setSelectedConvId(convId);
+        }
+
+        const userMessage = { 
+            conversation_id: convId, 
+            role: 'user', 
+            content: input.trim(), 
+            timestamp: new Date().toISOString() 
+        };
+        
+        setMessages(prev => [...prev, userMessage]);
+        setInput('');
+        setIsSending(true);
+        setError(null);
+
+        try {
+            // API'ye mesaj gönder
+            const response = await axios.post(`${API}/chat/message/send`, { 
+                conversation_id: convId, 
+                content: userMessage.content 
+            }, { headers: getHeaders() });
+
+            const aiMessage = response.data.ai_message;
+
+            setMessages(prev => [...prev, {
+                conversation_id: convId,
+                role: 'assistant',
+                content: aiMessage.content,
+                timestamp: aiMessage.timestamp
+            }]);
+
+            // İlk mesajdan sonra sohbet başlığını güncelle (varsa)
+            if (newConvTitle && convId) {
+                 fetchConversations(); // Başlık güncellemelerini çek
+            }
+
+        } catch (err) {
+            // Toaster.error("Mesaj gönderilirken bir hata oluştu.");
+            setError("Mesaj gönderilirken bir hata oluştu.");
+            // Hata durumunda kullanıcı mesajını geri silme veya hata mesajı gösterme
+            setMessages(prev => prev.slice(0, prev.length - 1)); 
+        } finally {
+            setIsSending(false);
+        }
     };
 
-    const createNewConversation = async () => {
-      try {
-        const response = await axios.post(
-          `${API}/chat/conversation`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
+    // Sohbet Silme
+    const handleDeleteConversation = async () => {
+        if (!selectedConvId) return;
+
+        try {
+            await axios.delete(`${API}/chat/conversation/${selectedConvId}`, { headers: getHeaders() });
+            // Toaster.success("Sohbet başarıyla silindi.");
+            
+            // Listeyi güncelle
+            const updatedConversations = conversations.filter(conv => conv.id !== selectedConvId);
+            setConversations(updatedConversations);
+            
+            // Yeni sohbet seç
+            if (updatedConversations.length > 0) {
+                setSelectedConvId(updatedConversations[0].id);
+            } else {
+                setSelectedConvId(null);
+                setMessages([]);
             }
-          }
-        );
-        const newConv = {
-          ...response.data,
-          title:
-            response.data.title.length > 30
-              ? response.data.title.substring(0, 27) + '...'
-              : response.data.title
+
+        } catch (err) {
+            // Toaster.error("Sohbet silinirken bir hata oluştu.");
+            setError("Sohbet silinirken bir hata oluştu.");
+        } finally {
+            setShowDeleteModal(false);
+        }
+    };
+
+    // Logout Modal
+    const LogoutModal = () => (
+        React.createElement('div', { className: 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50' },
+            React.createElement('div', { className: 'bg-white p-6 rounded-lg shadow-xl max-w-sm w-full' },
+                React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Oturumu Kapat'),
+                React.createElement('p', { className: 'mb-6 text-gray-600' }, 'Oturumu kapatmak istediğinizden emin misiniz?'),
+                React.createElement('div', { className: 'flex justify-end space-x-3' },
+                    React.createElement('button', {
+                        className: 'px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150',
+                        onClick: () => setShowDeleteModal(false)
+                    }, 'İptal'),
+                    React.createElement('button', {
+                        className: 'px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150',
+                        onClick: onLogout
+                    }, 'Kapat')
+                )
+            )
+        )
+    );
+
+    // Mesaj Bileşeni
+    const Message = ({ message }) => {
+        const isUser = message.role === 'user';
+        const msgClass = isUser 
+            ? 'bg-blue-500 text-white rounded-br-none' 
+            : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200';
+        
+        // Rehype highlight kaldırıldığı için artık sadece React Markdown kullanılıyor.
+        const components = {
+            code({ node, inline, className, children, ...props }) {
+                const match = /language-(\w+)/.exec(className || '')
+                return !inline && match
+                    ? React.createElement('pre', { className: 'p-4 rounded-lg bg-gray-800 overflow-x-auto text-sm', ...props }, React.createElement('code', { className: className, ...props }, String(children).replace(/\n$/, '')))
+                    : React.createElement('code', { className: 'bg-gray-200 text-red-600 px-1 py-0.5 rounded text-sm', ...props }, children)
+            },
+            p({ children, ...props }) {
+                return React.createElement('p', { className: 'mb-4', ...props }, children)
+            },
+            li({ children, ...props }) {
+                return React.createElement('li', { className: 'mb-1 ml-4 list-disc', ...props }, children)
+            }
         };
 
-        setConversations([newConv, ...conversations]);
-        setCurrentConversation(newConv);
-        setMessages([]);
-        toast.success('New conversation started');
-
-        if (window.innerWidth < 768) {
-          setSidebarOpen(false);
-        }
-
-        return newConv;
-      } catch (error) {
-        toast.error('Failed to create conversation');
-        return null;
-      }
-    };
-
-    const handleFileChange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error('File size should be less than 10MB');
-          e.target.value = '';
-          setSelectedImage(null);
-          setImagePreview(null);
-          return;
-        }
-
-        setSelectedImage(file);
-
-        if (file.type.startsWith('image/')) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            setImagePreview(reader.result);
-          };
-          reader.readAsDataURL(file);
-        } else {
-          setImagePreview(null);
-        }
-      } else {
-        setSelectedImage(null);
-        setImagePreview(null);
-      }
-    };
-
-    const removeImage = () => {
-      setSelectedImage(null);
-      setImagePreview(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    };
-
-    const sendMessage = async () => {
-      let conv = currentConversation;
-      if (!inputMessage.trim() && !selectedImage) return;
-
-      if (!conv) {
-        conv = await createNewConversation();
-        if (!conv) return;
-      }
-
-      setLoading(true);
-      const messageToSend = inputMessage;
-      const fileToSend = selectedImage;
-
-      const tempUserMessage = {
-        id: Date.now().toString(),
-        conversation_id: conv.id,
-        role: 'user',
-        content:
-          messageToSend +
-          (fileToSend
-            ? ` [Yüklenen Dosya: ${fileToSend.name} (${fileToSend.type})]`
-            : ''),
-        created_at: new Date().toISOString(),
-        has_image: fileToSend && fileToSend.type.startsWith('image/'),
-        image_data: imagePreview ? imagePreview : null
-      };
-
-      setMessages((prev) => [...prev, tempUserMessage]);
-      setInputMessage('');
-      removeImage();
-
-      const formData = new FormData();
-      formData.append('conversation_id', conv.id);
-      formData.append('message', messageToSend);
-
-      if (fileToSend) {
-        formData.append('file', fileToSend);
-      }
-
-      try {
-        const response = await axios.post(`${API}/chat/message`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        setMessages((prev) => {
-          const newMessages = prev.filter((msg) => msg.id !== tempUserMessage.id);
-          return [
-            ...newMessages,
-            response.data.user_message,
-            response.data.assistant_message
-          ];
-        });
-
-        loadConversations();
-      } catch (error) {
-        console.error('Error sending message:', error);
-        toast.error(
-          error.response?.data?.detail ||
-            'Mesaj gönderilemedi. Lütfen tekrar deneyin.'
+        return React.createElement(
+            'div', 
+            { className: `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6` },
+            React.createElement(
+                'div', 
+                { className: `max-w-3xl px-4 py-3 rounded-xl shadow-md ${msgClass}` },
+                React.createElement(
+                    Markdown.default, 
+                    {
+                        children: message.content, 
+                        className: isUser ? 'text-sm' : 'markdown-content text-sm',
+                        components: components,
+                        // rehypePlugins: [rehypeHighlight] // KALDIRILDI
+                    }
+                )
+            )
         );
-
-        setMessages((prev) => prev.filter((msg) => msg.id !== tempUserMessage.id));
-      } finally {
-        setLoading(false);
-      }
     };
 
-    const deleteConversation = async (convId, e) => {
-      e.stopPropagation();
-      try {
-        await axios.delete(`${API}/chat/conversation/${convId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        const updated = conversations.filter((c) => c.id !== convId);
-        setConversations(updated);
-        if (currentConversation?.id === convId) {
-          setCurrentConversation(updated[0] || null);
-          setMessages([]);
-        }
-        toast.success('Conversation deleted');
-      } catch (error) {
-        toast.error('Failed to delete conversation');
-      }
-    };
-
-    const handleKeyPress = (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    };
-
-    const SimpleAvatar = ({ children, className, onClick }) =>
-      React.createElement(
-        'div',
-        {
-          className: `w-10 h-10 rounded-full flex items-center justify-center ${className}`,
-          onClick: onClick
-        },
-        children
-      );
-
-    const MessageRenderer = ({ msg }) => {
-      const isUser = msg.role === 'user';
-      const msgClasses = isUser
-        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-sm shadow-xl'
-        : 'bg-white rounded-2xl rounded-tl-sm shadow-md border border-gray-100';
-      const textClasses = isUser ? 'text-white prose-invert' : 'text-gray-800';
-
-      return React.createElement(
-        'div',
-        {
-          key: msg.id,
-          className: `flex gap-4 ${isUser ? 'justify-end' : 'justify-start'}`,
-          'data-testid': `message-${msg.role}`
-        },
-        msg.role === 'assistant' &&
-          React.createElement(
-            SimpleAvatar,
-            {
-              className:
-                'mt-1 bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold flex-shrink-0'
-            },
-            'A'
-          ),
-        React.createElement(
-          'div',
-          {
-            className: `max-w-[85%] sm:max-w-[70%] p-4 ${msgClasses}`
-          },
-          msg.has_image &&
-            msg.image_data &&
-            React.createElement('img', {
-              src: msg.image_data.startsWith('data:image')
-                ? msg.image_data
-                : `data:image/jpeg;base64,${msg.image_data}`,
-              alt: 'Uploaded',
-              className:
-                'rounded-lg mb-3 max-w-full h-auto max-h-64 object-cover'
-            }),
-          React.createElement(
-            'div',
-            {
-              className: `whitespace-pre-wrap prose prose-sm max-w-none ${textClasses}`,
-              style: {
-                fontFamily: 'Inter, sans-serif'
-              }
-            },
-            React.createElement(
-              ReactMarkdown,
-              {
-                rehypePlugins: [rehypeHighlight]
-              },
-              msg.content
-            )
-          )
-        ),
-        isUser &&
-          React.createElement(
-            SimpleAvatar,
-            {
-              className:
-                'mt-1 bg-gradient-to-br from-purple-600 to-pink-600 text-white font-bold flex-shrink-0'
-            },
-            user.full_name.charAt(0).toUpperCase()
-          )
-      );
-    };
-
-    const EmptyState = () =>
-      React.createElement(
-        'div',
-        {
-          className:
-            'h-full flex flex-col items-center justify-center text-center px-4',
-          'data-testid': 'empty-state'
-        },
-        React.createElement(
-          'div',
-          {
-            className:
-              'w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center mb-6 shadow-2xl'
-          },
-          React.createElement(
-            'svg',
-            {
-              className: 'w-12 h-12 text-white',
-              fill: 'none',
-              stroke: 'currentColor',
-              viewBox: '0 0 24 24'
-            },
-            React.createElement('path', {
-              strokeLinecap: 'round',
-              strokeLinejoin: 'round',
-              strokeWidth: 2,
-              d: 'M13 10V3L4 14h7v7l9-11h-7z'
-            })
-          )
-        ),
-        React.createElement(
-          'h2',
-          {
-            className:
-              'text-3xl font-bold mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent',
-            style: {
-              fontFamily: 'Space Grotesk, sans-serif'
-            }
-          },
-          'Welcome to Alpine AI'
-        ),
-        React.createElement(
-          'p',
-          {
-            className: 'text-gray-600 max-w-md',
-            style: {
-              fontFamily: 'Inter, sans-serif'
-            }
-          },
-          'Your intelligent assistant. Ask me anything or upload an image/document to get started!'
-        )
-      );
-
-    const LoadingIndicator = () =>
-      React.createElement(
-        'div',
-        {
-          className: 'flex gap-4 justify-start',
-          'data-testid': 'loading-indicator'
-        },
-        React.createElement(
-          SimpleAvatar,
-          {
-            className:
-              'mt-1 bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-bold flex-shrink-0'
-          },
-          'A'
-        ),
-        React.createElement(
-          'div',
-          {
-            className:
-              'bg-white rounded-2xl rounded-tl-sm shadow-md border border-gray-100 p-4'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'flex gap-2'
-            },
-            React.createElement('div', {
-              className: 'w-2 h-2 bg-blue-600 rounded-full animate-bounce',
-              style: {
-                animationDelay: '0ms'
-              }
-            }),
-            React.createElement('div', {
-              className: 'w-2 h-2 bg-indigo-600 rounded-full animate-bounce',
-              style: {
-                animationDelay: '150ms'
-              }
-            }),
-            React.createElement('div', {
-              className: 'w-2 h-2 bg-purple-600 rounded-full animate-bounce',
-              style: {
-                animationDelay: '300ms'
-              }
-            })
-          )
-        )
-      );
-
-    const FilePreview = () =>
-      React.createElement(
-        'div',
-        {
-          className:
-            'mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-inner',
-          'data-testid': 'file-preview'
-        },
-        React.createElement(
-          'div',
-          {
-            className: 'flex items-center gap-3'
-          },
-          selectedImage.type.startsWith('image/') && imagePreview
-            ? React.createElement('img', {
-                src: imagePreview,
-                alt: 'Preview',
-                className:
-                  'w-16 h-16 rounded-lg object-cover border border-gray-300'
-              })
-            : React.createElement(
-                'div',
-                {
-                  className:
-                    'w-16 h-16 rounded-lg bg-blue-200 flex items-center justify-center text-blue-800 text-xs font-semibold'
-                },
-                selectedImage.type.includes('pdf')
-                  ? 'PDF'
-                  : selectedImage.type.includes('text')
-                  ? 'TXT'
-                  : 'FILE'
-              ),
-          React.createElement(
-            'div',
-            {
-              className: 'flex-1 min-w-0'
-            },
-            React.createElement(
-              'p',
-              {
-                className: 'text-sm font-medium truncate',
-                style: {
-                  fontFamily: 'Inter, sans-serif'
-                }
-              },
-              selectedImage.name
-            ),
-            React.createElement(
-              'p',
-              {
-                className: 'text-xs text-gray-500'
-              },
-              Math.ceil(selectedImage.size / 1024 / 1024),
-              ' MB'
-            )
-          ),
-          React.createElement(
-            'button',
-            {
-              onClick: removeImage,
-              className:
-                'p-2 hover:bg-red-100 rounded-lg transition-colors',
-              'data-testid': 'remove-file-button'
-            },
-            React.createElement(X, {
-              className: 'w-4 h-4 text-red-500'
-            })
-          )
-        )
-      );
-
-    return React.createElement(
-      'div',
-      {
-        className:
-          'flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50'
-      },
-      // Sidebar
-      React.createElement(
-        'div',
-        {
-          className: `${
-            sidebarOpen ? 'w-full md:w-80 absolute z-20 md:relative' : 'w-0'
-          } transition-all duration-300 bg-white/95 backdrop-blur-md border-r border-gray-200 flex flex-col overflow-hidden flex-shrink-0 h-full`,
-          'data-testid': 'sidebar'
-        },
-        React.createElement(
-          'div',
-          {
-            className: 'p-4 border-b border-gray-200'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'flex items-center justify-between mb-4'
-            },
-            React.createElement(
-              'div',
-              {
-                className: 'flex items-center gap-3'
-              },
-              React.createElement(
-                'div',
-                {
-                  className:
-                    'w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg'
-                },
-                React.createElement(
-                  'svg',
-                  {
-                    className: 'w-6 h-6 text-white',
-                    fill: 'none',
-                    stroke: 'currentColor',
-                    viewBox: '0 0 24 24'
-                  },
-                  React.createElement('path', {
-                    strokeLinecap: 'round',
-                    strokeLinejoin: 'round',
-                    strokeWidth: 2,
-                    d: 'M13 10V3L4 14h7v7l9-11h-7z'
-                  })
+    // Loader Bileşeni
+    const Loader = () => (
+        React.createElement('div', { className: 'flex justify-start mb-6' },
+            React.createElement('div', { className: 'max-w-3xl px-4 py-3 rounded-xl shadow-md bg-gray-100' },
+                React.createElement('div', { className: 'flex space-x-1' },
+                    React.createElement('div', { className: 'w-2 h-2 bg-gray-500 rounded-full animate-bounce', style: { animationDelay: '0s' } }),
+                    React.createElement('div', { className: 'w-2 h-2 bg-gray-500 rounded-full animate-bounce', style: { animationDelay: '0.2s' } }),
+                    React.createElement('div', { className: 'w-2 h-2 bg-gray-500 rounded-full animate-bounce', style: { animationDelay: '0.4s' } })
                 )
-              ),
-              React.createElement(
-                'div',
-                null,
-                React.createElement(
-                  'h2',
-                  {
-                    className: 'font-bold text-lg',
-                    style: {
-                      fontFamily: 'Space Grotesk, sans-serif'
-                    }
-                  },
-                  'Alpine'
-                )
-              )
-            ),
-            sidebarOpen &&
-              window.innerWidth < 768 &&
-              React.createElement(
-                'button',
-                {
-                  onClick: () => setSidebarOpen(false),
-                  className:
-                    'p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden',
-                  'aria-label': 'Kapat'
-                },
-                React.createElement(X, {
-                  className: 'w-5 h-5'
-                })
-              )
-          ),
-          React.createElement(
-            'button',
-            {
-              onClick: createNewConversation,
-              className:
-                'w-full h-10 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 flex items-center justify-center',
-              'data-testid': 'new-chat-button',
-              style: {
-                fontFamily: 'Inter, sans-serif'
-              }
-            },
-            React.createElement(PlusCircle, {
-              className: 'w-5 h-5 mr-2'
-            }),
-            'New Chat'
-          )
-        ),
-        // Konuşmalar Listesi
-        React.createElement(
-          'div',
-          {
-            className: 'flex-1 p-4 overflow-y-auto'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'space-y-2'
-            },
-            conversations.map((conv) =>
-              React.createElement(
-                'div',
-                {
-                  key: conv.id,
-                  onClick: () => {
-                    setCurrentConversation(conv);
-                    if (window.innerWidth < 768) {
-                      setSidebarOpen(false);
-                    }
-                  },
-                  className: `p-3 rounded-lg cursor-pointer group transition-all duration-200 flex items-center justify-between ${
-                    currentConversation?.id === conv.id
-                      ? 'bg-gradient-to-r from-blue-100 to-indigo-100 shadow-sm ring-2 ring-indigo-300'
-                      : 'hover:bg-gray-100'
-                  }`,
-                  'data-testid': `conversation-${conv.id}`
-                },
-                React.createElement(
-                  'div',
-                  {
-                    className: 'flex-1 min-w-0 pr-2'
-                  },
-                  React.createElement(
-                    'p',
-                    {
-                      className: 'font-medium text-sm truncate',
-                      style: {
-                        fontFamily: 'Inter, sans-serif'
-                      }
-                    },
-                    conv.title
-                  ),
-                  React.createElement(
-                    'p',
-                    {
-                      className: 'text-xs text-gray-500 mt-1'
-                    },
-                    new Date(conv.updated_at).toLocaleDateString()
-                  )
+            )
+        )
+    );
+
+    // Ana Bileşenin JSX'i (dönüştürülmüş)
+    const activeConvTitle = conversations.find(c => c.id === selectedConvId)?.title || "Yeni Sohbet";
+
+    return React.createElement('div', { className: 'flex h-screen antialiased bg-gray-50' }, 
+        // 1. Sidebar (Konuşmalar)
+        React.createElement('div', { 
+            className: `fixed z-30 inset-y-0 left-0 transform ${
+                sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            } md:relative md:translate-x-0 transition duration-300 ease-in-out md:flex md:flex-col w-64 bg-white border-r border-gray-200 shadow-xl md:shadow-none` 
+        },
+            // Sidebar Header
+            React.createElement('div', { className: 'p-4 flex items-center justify-between border-b border-gray-200' },
+                React.createElement('h3', { className: 'text-lg font-bold text-gray-800 flex items-center' }, 
+                    React.createElement(MessageSquare, { className: 'w-5 h-5 mr-2 text-blue-600' }),
+                    'Konuşmalar'
                 ),
-                React.createElement(
-                  'button',
-                  {
-                    onClick: (e) => deleteConversation(conv.id, e),
-                    className:
-                      'opacity-0 group-hover:opacity-100 transition-opacity ml-2 p-1 rounded-full hover:bg-red-50',
-                    'data-testid': `delete-conversation-${conv.id}`
-                  },
-                  React.createElement(Trash2, {
-                    className: 'w-4 h-4 text-red-500 hover:text-red-600'
-                  })
+                React.createElement('button', {
+                    className: 'md:hidden text-gray-500 hover:text-gray-700',
+                    onClick: () => setSidebarOpen(false)
+                }, React.createElement(X, { className: 'w-6 h-6' }))
+            ),
+            // Yeni Sohbet Butonu
+            React.createElement('div', { className: 'p-4' },
+                React.createElement('button', {
+                    className: 'w-full flex items-center justify-center px-4 py-3 border border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition duration-150',
+                    onClick: startNewConversation
+                }, React.createElement(Plus, { className: 'w-5 h-5 mr-2' }), 'Yeni Sohbet')
+            ),
+            // Sohbet Listesi
+            React.createElement('nav', { className: 'flex-1 overflow-y-auto px-4 space-y-2 pb-4' },
+                conversations.map(conv => (
+                    React.createElement('a', {
+                        key: conv.id,
+                        href: '#',
+                        className: `flex items-center p-3 rounded-xl transition duration-150 ${
+                            conv.id === selectedConvId ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'
+                        }`,
+                        onClick: (e) => { e.preventDefault(); setSelectedConvId(conv.id); setSidebarOpen(false); }
+                    },
+                        React.createElement(MessageSquare, { className: 'w-4 h-4 mr-3 flex-shrink-0' }),
+                        React.createElement('span', { className: 'truncate text-sm' }, conv.title)
+                    )
+                ))
+            )
+        ),
+
+        // 2. Ana Chat Alanı
+        React.createElement('div', { className: 'flex-1 flex flex-col' },
+            // Chat Header
+            React.createElement('header', { className: 'sticky top-0 z-10 p-4 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm' },
+                // Mobil Menu Butonu
+                React.createElement('button', { 
+                    className: 'md:hidden text-gray-600 hover:text-gray-800 mr-4',
+                    onClick: () => setSidebarOpen(true)
+                }, React.createElement(Menu, { className: 'w-6 h-6' })),
+                // Başlık
+                React.createElement('div', { className: 'flex-1' },
+                    React.createElement('h2', { className: 'text-xl font-bold text-gray-900 truncate' }, activeConvTitle)
+                ),
+                // İşlemler
+                React.createElement('div', { className: 'flex items-center space-x-3' },
+                    selectedConvId && React.createElement('button', {
+                        className: 'p-2 text-red-600 hover:bg-red-50 rounded-full transition duration-150',
+                        title: 'Sohbeti Sil',
+                        onClick: () => setShowDeleteModal(true)
+                    }, React.createElement(Trash2, { className: 'w-5 h-5' })),
+                    React.createElement('button', {
+                        className: 'p-2 text-gray-600 hover:bg-gray-100 rounded-full transition duration-150',
+                        title: 'Çıkış Yap',
+                        onClick: onLogout // onLogout direkt çağırılıyor, modal kaldırıldı.
+                    }, React.createElement(LogOut, { className: 'w-5 h-5' }))
                 )
-              )
-            )
-          )
-        ),
-        // Kullanıcı Bilgisi ve Çıkış
-        React.createElement(
-          'div',
-          {
-            className: 'p-4 border-t border-gray-200'
-          },
-          React.createElement(
-            'div',
-            {
-              className:
-                'flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-gray-50 to-blue-50'
-            },
-            React.createElement(
-              SimpleAvatar,
-              {
-                className:
-                  'bg-gradient-to-br from-purple-600 to-pink-600 text-white font-semibold'
-              },
-              user.full_name.charAt(0).toUpperCase()
             ),
-            React.createElement(
-              'div',
-              {
-                className: 'flex-1 min-w-0'
-              },
-              React.createElement(
-                'p',
-                {
-                  className: 'font-medium text-sm truncate',
-                  style: {
-                    fontFamily: 'Inter, sans-serif'
-                  }
-                },
-                user.full_name
-              ),
-              React.createElement(
-                'p',
-                {
-                  className: 'text-xs text-gray-500 truncate'
-                },
-                user.email
-              )
+            
+            // Mesaj Akışı
+            React.createElement('main', { className: 'flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50' },
+                messages.map((msg, index) => React.createElement(Message, { key: index, message: msg })),
+                isSending && React.createElement(Loader, null),
+                !selectedConvId && messages.length === 0 && React.createElement('div', { className: 'h-full flex items-center justify-center' },
+                    React.createElement('div', { className: 'text-center text-gray-500' },
+                        React.createElement(MessageSquare, { className: 'w-10 h-10 mx-auto mb-3 text-blue-400' }),
+                        React.createElement('p', { className: 'text-lg font-medium' }, 'Yeni bir sohbet başlatın veya mesajınızı yazın.')
+                    )
+                ),
+                React.createElement('div', { ref: messagesEndRef })
             ),
-            React.createElement(
-              'button',
-              {
-                onClick: onLogout,
-                className:
-                  'p-2 hover:bg-red-100 rounded-lg transition-colors',
-                'data-testid': 'logout-button'
-              },
-              React.createElement(LogOut, {
-                className: 'w-5 h-5 text-red-500'
-              })
+
+            // Mesaj Giriş Alanı
+            React.createElement('footer', { className: 'p-4 bg-white border-t border-gray-200' },
+                React.createElement('form', { className: 'flex items-center space-x-3', onSubmit: handleSend },
+                    React.createElement('textarea', {
+                        className: 'flex-1 resize-none p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150',
+                        rows: 1,
+                        placeholder: 'Mesajınızı yazın...',
+                        value: input,
+                        onChange: (e) => setInput(e.target.value),
+                        onKeyDown: (e) => { 
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSend(e);
+                            }
+                        },
+                        disabled: isSending
+                    }),
+                    React.createElement('button', {
+                        type: 'submit',
+                        className: `p-3 rounded-full text-white transition duration-300 ${
+                            input.trim() && !isSending ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                        }`,
+                        disabled: !input.trim() || isSending
+                    }, isSending ? React.createElement('div', { className: 'w-5 h-5 border-2 border-white border-t-transparent border-solid rounded-full animate-spin' }) : React.createElement(Send, { className: 'w-5 h-5' }))
+                )
             )
-          )
-        )
-      ),
-      // Main Chat Area
-      React.createElement(
-        'div',
-        {
-          className: 'flex-1 flex flex-col'
-        },
-        // Header
-        React.createElement(
-          'div',
-          {
-            className:
-              'h-16 bg-white/80 backdrop-blur-sm border-b border-gray-200 flex items-center justify-between px-6 shadow-sm flex-shrink-0'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'flex items-center'
-            },
-            React.createElement(
-              'button',
-              {
-                onClick: () => setSidebarOpen(true),
-                className:
-                  'p-2 hover:bg-gray-100 rounded-lg transition-colors md:hidden mr-3',
-                'aria-label': 'Menüyü Aç'
-              },
-              React.createElement(Menu, {
-                className: 'w-6 h-6'
-              })
-            ),
-            React.createElement(
-              'h2',
-              {
-                className: 'text-lg font-semibold text-gray-800 truncate',
-                style: {
-                  fontFamily: 'Space Grotesk, sans-serif'
-                }
-              },
-              currentConversation ? currentConversation.title : 'New Chat'
-            )
-          ),
-          React.createElement(
-            'button',
-            {
-              onClick: createNewConversation,
-              className:
-                'hidden md:flex items-center text-indigo-600 hover:text-indigo-800 transition-colors',
-              style: {
-                fontFamily: 'Inter, sans-serif'
-              }
-            },
-            React.createElement(PlusCircle, {
-              className: 'w-5 h-5 mr-1'
-            }),
-            'New Chat'
-          )
         ),
-        // Messages Area
-        React.createElement(
-          'div',
-          {
-            className: 'flex-1 p-6 overflow-y-auto space-y-8',
-            'data-testid': 'messages-area'
-          },
-          messages.length === 0 && !loading && React.createElement(EmptyState, null),
-          messages.map((msg) => React.createElement(MessageRenderer, { msg: msg, key: msg.id })),
-          loading && React.createElement(LoadingIndicator, null),
-          React.createElement('div', { ref: messagesEndRef })
-        ),
-        // Input Area
-        React.createElement(
-          'div',
-          {
-            className: 'p-6 flex-shrink-0 bg-white/90 backdrop-blur-sm border-t border-gray-200'
-          },
-          React.createElement(
-            'div',
-            {
-              className: 'max-w-4xl mx-auto'
-            },
-            selectedImage && React.createElement(FilePreview, null),
-            React.createElement(
-              'div',
-              {
-                className: 'flex items-end bg-white border border-gray-300 rounded-xl shadow-lg focus-within:ring-2 focus-within:ring-indigo-500 transition-all'
-              },
-              React.createElement(
-                'button',
-                {
-                  onClick: () => fileInputRef.current.click(),
-                  className: 'p-3 text-gray-500 hover:text-indigo-600 transition-colors flex-shrink-0',
-                  disabled: loading,
-                  'aria-label': 'Dosya Seç',
-                  'data-testid': 'upload-button'
-                },
-                React.createElement(ImageIcon, {
-                  className: 'w-6 h-6'
-                })
-              ),
-              React.createElement('input', {
-                type: 'file',
-                ref: fileInputRef,
-                onChange: handleFileChange,
-                className: 'hidden',
-                accept: 'image/*,application/pdf,text/plain'
-              }),
-              React.createElement('textarea', {
-                value: inputMessage,
-                onChange: (e) => setInputMessage(e.target.value),
-                onKeyPress: handleKeyPress,
-                placeholder: loading ? 'Please wait for the response...' : 'Message Alpine AI...',
-                rows: 1,
-                className:
-                  'flex-1 resize-none py-3 px-0 bg-transparent text-gray-800 placeholder-gray-500 focus:outline-none overflow-hidden h-auto max-h-40',
-                disabled: loading,
-                style: {
-                  fontFamily: 'Inter, sans-serif'
-                },
-                'data-testid': 'message-input'
-              }),
-              React.createElement(
-                'button',
-                {
-                  onClick: sendMessage,
-                  className: `p-3 m-1 rounded-lg transition-all flex-shrink-0 ${
-                    (inputMessage.trim() || selectedImage) && !loading
-                      ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`,
-                  disabled: loading || (!inputMessage.trim() && !selectedImage),
-                  'aria-label': 'Gönder',
-                  'data-testid': 'send-button'
-                },
-                React.createElement(Send, {
-                  className: 'w-6 h-6'
-                })
-              )
-            )
-          )
-        )
-      )
+        
+        // Modal
+        showDeleteModal && React.createElement(LogoutModal, { onLogout: handleDeleteConversation }) // Modalı yeniden kullan
     );
   };
 
-  // --- App Bileşeni (JSX'ten dönüştürülmüş) ---
+  // --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
   const App = function () {
-    // HOOK'lar ve KÜTÜPHANELERİN LOKAL TANIMLAMALARI (Çakışmayı önler)
-    const useState = React.useState;
-    const useEffect = React.useEffect;
-    
-    // App bileşeni artık globalde tanımlanan (BrowserRouter, Routes vb.) değişkenleri kullanıyor.
-    
-    const [token, setToken] = useState(null);
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      }
-      setLoading(false);
-    }, []);
+    const [token, setToken] = React.useState(localStorage.getItem('token'));
+    const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
 
     const handleLogin = (newToken, newUser) => {
       localStorage.setItem('token', newToken);
@@ -1221,17 +490,16 @@ if (!BrowserRouter || !Routes || !Route || !Navigate) {
       setUser(null);
     };
 
-    if (loading) {
-      return React.createElement('div', { className: 'flex items-center justify-center min-h-screen text-lg font-bold' }, 'Loading...');
-    }
+    const { BrowserRouter, Routes, Route, Navigate } = window.ReactRouterDOM;
+    // const { Toaster } = window.Sonner; // KALDIRILDI
 
-    // App Bileşeni Artık React.createElement ile global değişkenleri kullanıyor.
+    // JSX yapısı, globalden alınan bileşenler ile global değişkenleri kullanıyor.
     return React.createElement(
       BrowserRouter, // Globalden alındı
       null,
-      React.createElement(Toaster, { // Globalden alındı
-        position: 'bottom-center'
-      }),
+      // React.createElement(Toaster, { // KALDIRILDI
+      //   position: 'bottom-center'
+      // }),
       React.createElement(
         Routes, // Globalden alındı
         null,
@@ -1253,22 +521,16 @@ if (!BrowserRouter || !Routes || !Route || !Navigate) {
 
 
   // 💥 KODUN BAŞLATILMASI (Eski index.js'in içeriği)
-  // Bu kod, dosyanın en sonunda çalışır ve 'defer' sayesinde 
-  // tüm kütüphaneler yüklendikten sonra tetiklenir.
+  const container = document.getElementById('root');
 
-const container = document.getElementById('root');
+  if (container && App) {
+      ReactDOM.createRoot(container).render(
+          React.createElement(React.StrictMode, null, 
+              React.createElement(App, null)
+          )
+      );
+  } else {
+      console.error("Root elementi veya App bileşeni bulunamadı.");
+  }
 
-if (container && App) {
-    ReactDOM.createRoot(container).render(
-        React.createElement(React.StrictMode, null, 
-            React.createElement(App, null)
-        )
-    );
-} else {
-    console.error("Hata: 'root' elementi bulunamadı veya App bileşeni yüklenmedi.");
-}
-
-}; // 💥 KRİTİK DÜZELTME: window.onload sarmalayıcısını kapatan parantez.
-
-
-
+};
