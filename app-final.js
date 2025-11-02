@@ -4,15 +4,17 @@
  */
 
 window.onload = () => {
-  // KRİTİK ZAMANLAMA KONTROLÜ
-  // Tüm kütüphanelerin yüklenmesi için bir saniye bekler.
-  // Bu, CDN'lerin geç yüklenmesi sorununu çözer.
-  if (!window.React || !window.ReactDOM || !window.ReactRouterDOM) {
-      setTimeout(window.onload, 100);
-      return;
-  }
-  // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
-  const API = '/api';  // Tüm API çağrıları için tek bir değişken
+    // 💥 NİHAİ GECİKME KONTROLÜ: Routes'u garantiye almak için
+    // React Router DOM'un varlığından emin olana kadar bekler.
+    if (!window.ReactRouterDOM || !window.ReactRouterDOM.Routes) {
+        setTimeout(window.onload, 100);
+        return;
+    }
+    
+    // ----------------------------------------------------
+    // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
+    const API = '/api'; 
+    // ... (Geri kalan tüm kodunuz aşağıdan devam eder)
 
   // 💥 KRİTİK DÜZELTME 1: Lucide Ikon yerine basit bir yedek bileşen tanımla.
   // Lucide Icons CDN'i yüklenmediği için bu bileşen tüm ikonların yerine kullanılır.
@@ -568,6 +570,7 @@ window.onload = () => {
       console.error("Root elementi veya App bileşeni bulunamadı.");
   }
 };
+
 
 
 
