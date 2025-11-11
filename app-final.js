@@ -120,7 +120,7 @@ const Auth = function ({ onLogin }) {
                         onChange: (e) => setPassword(e.target.value) 
                     }),
                     // GÖZ İKONU BUTONU
-                    React.createElement('button', {
+                        React.createElement('button', {
                         type: 'button', // Formu göndermemesi için 'button' tipi verdik
                         className: 'absolute inset-y-0 right-0 flex items-center px-3 text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
                         onClick: () => setShowPassword(prev => !prev), // State'i tersine çevir
@@ -580,5 +580,6 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error("KRİTİK HATA: React 18 createRoot bulunamadı.");
 }
+
 
 
