@@ -108,12 +108,12 @@ const Auth = function ({ onLogin }) {
                 
                 // 💥 DÜZELTME: Şifre bloğu güncellendi (göz ikonu eklendi)
                React.createElement('div', { className: 'relative' }, // div'e 'relative' class'ı ekledik␊
+                  React.createElement('div', { className: 'relative' }, // div'e 'relative' class'ı ekledik␊
                     React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'),␊
                     React.createElement('input', {
                         id: 'password',
                         name: 'password',
                         type: showPassword ? 'text' : 'password', // Tipi dinamik hale getirdik␊
-                        required: true, 
                         className: inputClass, 
                         placeholder: 'Şifre', 
                         value: password, 
@@ -580,6 +580,7 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error("KRİTİK HATA: React 18 createRoot bulunamadı.");
 }
+
 
 
 
