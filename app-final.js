@@ -6,20 +6,19 @@
 
 // ----------------------------------------------------
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
-const API = '/api';
-const axios = window.axios;
-const ReactDOM = window.ReactDOM;
-
-// 💥 Router (v6)
-const RRD = window.ReactRouterDOM;
-const BrowserRouter = RRD?.BrowserRouter;
-const Routes = RRD?.Routes;
-const Route = RRD?.Route;
-const Navigate = RRD?.Navigate;
-
-if (!BrowserRouter || !Routes || !Route || !Navigate) {
-  console.error("React Router DOM v6 yüklenemedi. CDN sırasını kontrol et.");
-}
+const axios = window.axios;␊
+const ReactDOM = window.ReactDOM;␊
+␊
+// Router (v6)
+const RRD = window.ReactRouterDOM;␊
+const HashRouter = RRD?.HashRouter;
+const Routes = RRD?.Routes;␊
+const Route = RRD?.Route;␊
+const Navigate = RRD?.Navigate;␊
+␊
+if (!HashRouter || !Routes || !Route || !Navigate) {
+  console.error('React Router DOM v6 yüklenemedi. CDN sırasını kontrol et.');
+}␊
 
 // --- Lucide Icon Yedek Bileşeni ---
 // 💥 DÜZELTME: Çift tanımlama kaldırıldı. Sadece Göz ikonlarını içeren bu sürüm kaldı.
@@ -108,12 +107,12 @@ const Auth = function ({ onLogin }) {
                 React.createElement('div', null, React.createElement('label', { htmlFor: 'email-address', className: 'sr-only' }, 'E-posta Adresi'), React.createElement('input', { id: 'email-address', name: 'email', type: 'email', required: true, className: inputClass, placeholder: 'E-posta Adresi', value: email, onChange: (e) => setEmail(e.target.value) })),
                 
                 // 💥 DÜZELTME: Şifre bloğu güncellendi (göz ikonu eklendi)
-                React.createElement('div', { className: 'relative' }, // div'e 'relative' class'ı ekledik
-                    React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'),
-                    React.createElement('input', { 
-                        id: 'password', 
-                        name: 'password', 
-                        type: showPassword ? 'text' : 'password', // Tipi dinamik hale getirdik
+               React.createElement('div', { className: 'relative' }, // div'e 'relative' class'ı ekledik␊
+                    React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'),␊
+                    React.createElement('input', {
+                        id: 'password',
+                        name: 'password',
+                        type: showPassword ? 'text' : 'password', // Tipi dinamik hale getirdik␊
                         required: true, 
                         className: inputClass, 
                         placeholder: 'Şifre', 
@@ -123,16 +122,17 @@ const Auth = function ({ onLogin }) {
                     // GÖZ İKONU BUTONU
                     React.createElement('button', {
                         type: 'button', // Formu göndermemesi için 'button' tipi verdik
-                        className: 'absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700',
-                        onClick: () => setShowPassword(prev => !prev) // State'i tersine çevir
+                        className: 'absolute inset-y-0 right-0 flex items-center px-3 text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+                        onClick: () => setShowPassword(prev => !prev), // State'i tersine çevir
+                        'aria-label': showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'
                     },
-                        // Duruma göre ikonu değiştir
+                        React.createElement('span', { className: 'mr-1 hidden sm:inline' }, showPassword ? 'Gizle' : 'Göster'),
                         showPassword
-                            ? React.createElement(Icon, { name: 'EyeOff', className: 'w-5 h-5' }) 
+                            ? React.createElement(Icon, { name: 'EyeOff', className: 'w-5 h-5' })
                             : React.createElement(Icon, { name: 'Eye', className: 'w-5 h-5' })
                     )
                 ),
-                // ------------------------------------
+                              // ------------------------------------
 
                 React.createElement('div', null, React.createElement('button', { type: 'submit', disabled: !isFormValid() || isLoading, className: buttonClass }, isLoading ? 'Yükleniyor...' : (isLogin ? 'Giriş Yap' : 'Kayıt Ol'))),
                 React.createElement('div', { className: 'text-center' },
@@ -586,3 +586,4 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error("KRİTİK HATA: React 18 createRoot bulunamadı.");
 }
+
