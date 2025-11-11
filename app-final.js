@@ -115,7 +115,20 @@ const Auth = function ({ onLogin }) {
                         placeholder: 'Şifre', 
                         value: password, 
                         onChange: (e) => setPassword(e.target.value) 
-                    }),
+                    })
+,
+              React.createElement(
+                'div',
+                { className: 'flex items-center gap-2 text-sm text-gray-600 mt-1' },
+                React.createElement('input', {
+                  type: 'checkbox',
+                  checked: showPassword,
+                  onChange: () => setShowPassword(!showPassword),
+                  className: 'rounded border-gray-300'
+                }),
+                'Şifreyi göster'
+              )
+,
                     // GÖZ İKONU BUTONU
                     React.createElement('button', {
                         type: 'button', // Formu göndermemesi için 'button' tipi verdik
