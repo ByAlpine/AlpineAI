@@ -34,7 +34,29 @@ const Icon = ({ name, className = 'w-5 h-5', size }) => {
         style: size ? { width: size, height: size } : {}
     }, content);
 };
+// app-final.js dosyanızın üst kısımlarında (Auth bileşeninden önce)
+const Icon = ({ name, className = 'w-5 h-5', size }) => {
+    const defaultClass = `inline-flex items-center justify-center ${className} font-bold text-gray-700`;
+    let content = name ? name[0] : '?'; 
+    if (name === 'X') content = '❌';
+    if (name === 'Check') content = '✅';
+    if (name === 'Send') content = '▶';
+    if (name === 'LogOut') content = '🚪';
+    if (name === 'MessageSquare') content = '💬';
+    if (name === 'Plus') content = '+';
+    if (name === 'Trash2') content = '🗑️';
+    if (name === 'Menu') content = '☰';
+    
+    // --- YENİ EKLENECEK KISIM ---
+    if (name === 'Eye') content = '👁️';
+    if (name === 'EyeOff') content = '🙈';
+    // --------------------------------
 
+    return React.createElement('span', { 
+        className: defaultClass, 
+        style: size ? { width: size, height: size } : {}
+    }, content);
+};
 // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
 const Auth = function ({ onLogin }) {
     // HOOK'lar ve KÜTÜPHANELER
@@ -548,3 +570,4 @@ if (container && ReactDOM && ReactDOM.render) {
 } else {
     console.error("KRİTİK HATA: Root elementi veya ReactDOM kütüphanesi bulunamadı/yüklenmedi.");
 }
+
