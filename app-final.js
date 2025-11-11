@@ -1,13 +1,14 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ NİHAİ TEK DOSYA
  * KESİN DÜZELTME: React Router v5 (Switch/Redirect) bileşenleri ile uyumlu hale getirildi.
+ * DÜZELTME 2: 'Icon' çift tanımlama hatası giderildi ve 'Şifre Göster' özelliği eklendi.
  */
 
 // ----------------------------------------------------
 // SADECE GLOBAL SABİTLER BURADA KALMALIDIR
-const API = '/api'; 
-const axios = window.axios; 
-const ReactDOM = window.ReactDOM; 
+const API = '/api';
+const axios = window.axios;
+const ReactDOM = window.ReactDOM;
 
 // 💥 KRİTİK DÜZELTME: v5 bileşenlerini (Switch, Redirect) doğru şekilde atıyoruz.
 const RRD = window.ReactRouterDOM;
@@ -17,9 +18,10 @@ const Switch = RRD.Switch; // v6'daki Routes yerine v5'te Switch kullanılır
 const Redirect = RRD.Redirect; // v6'daki Navigate yerine v5'te Redirect kullanılır
 
 // --- Lucide Icon Yedek Bileşeni ---
+// 💥 DÜZELTME: Çift tanımlama kaldırıldı. Sadece Göz ikonlarını içeren bu sürüm kaldı.
 const Icon = ({ name, className = 'w-5 h-5', size }) => {
     const defaultClass = `inline-flex items-center justify-center ${className} font-bold text-gray-700`;
-    let content = name ? name[0] : '?'; 
+    let content = name ? name[0] : '?';
     if (name === 'X') content = '❌';
     if (name === 'Check') content = '✅';
     if (name === 'Send') content = '▶';
@@ -29,40 +31,24 @@ const Icon = ({ name, className = 'w-5 h-5', size }) => {
     if (name === 'Trash2') content = '🗑️';
     if (name === 'Menu') content = '☰';
 
-    return React.createElement('span', { 
-        className: defaultClass, 
-        style: size ? { width: size, height: size } : {}
-    }, content);
-};
-// app-final.js dosyanızın üst kısımlarında (Auth bileşeninden önce)
-const Icon = ({ name, className = 'w-5 h-5', size }) => {
-    const defaultClass = `inline-flex items-center justify-center ${className} font-bold text-gray-700`;
-    let content = name ? name[0] : '?'; 
-    if (name === 'X') content = '❌';
-    if (name === 'Check') content = '✅';
-    if (name === 'Send') content = '▶';
-    if (name === 'LogOut') content = '🚪';
-    if (name === 'MessageSquare') content = '💬';
-    if (name === 'Plus') content = '+';
-    if (name === 'Trash2') content = '🗑️';
-    if (name === 'Menu') content = '☰';
-    
-    // --- YENİ EKLENECEK KISIM ---
+    // --- YENİ EKLENEN KISIM ---
     if (name === 'Eye') content = '👁️';
     if (name === 'EyeOff') content = '🙈';
     // --------------------------------
 
-    return React.createElement('span', { 
-        className: defaultClass, 
+    return React.createElement('span', {
+        className: defaultClass,
         style: size ? { width: size, height: size } : {}
     }, content);
 };
+
 // --- Auth Bileşeni (JSX'ten dönüştürülmüş) ---
 const Auth = function ({ onLogin }) {
     // HOOK'lar ve KÜTÜPHANELER
     const [isLogin, setIsLogin] = React.useState(true);
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
+    const [showPassword, setShowPassword] = React.useState(false); // 💥 EKLENDİ: Şifre gösterme state'i
     const [fullName, setFullName] = React.useState('');
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState(null);
@@ -73,13 +59,13 @@ const Auth = function ({ onLogin }) {
         setIsLoading(true);
 
         const endpoint = isLogin ? `${API}/auth/login` : `${API}/auth/register`;
-        const data = isLogin 
-            ? { email, password } 
+        const data = isLogin
+            ? { email, password }
             : { email, password, full_name: fullName };
 
         try {
             const response = await axios.post(endpoint, data);
-            
+
             if (response.data.access_token) {
                 onLogin(response.data.access_token, response.data.user);
             } else {
@@ -106,20 +92,47 @@ const Auth = function ({ onLogin }) {
     const linkClass = "text-blue-600 hover:text-blue-800 font-medium transition duration-150 ease-in-out";
 
     return React.createElement(
-        'div', 
+        'div',
         { className: 'flex items-center justify-center min-h-screen bg-gray-50' },
         React.createElement(
-            'div', 
+            'div',
             { className: 'w-full max-w-md p-8 space-y-8 bg-white shadow-xl rounded-2xl' },
             React.createElement('h2', { className: 'text-center text-3xl font-bold text-gray-900' }, isLogin ? 'Giriş Yap' : 'Kayıt Ol'),
             error && React.createElement('div', { className: 'p-3 text-sm font-medium text-red-700 bg-red-100 rounded-lg' }, error),
             React.createElement('form', { className: 'mt-8 space-y-6', onSubmit: handleSubmit },
                 !isLogin && React.createElement('div', null, React.createElement('label', { htmlFor: 'full-name', className: 'sr-only' }, 'Ad Soyad'), React.createElement('input', { id: 'full-name', name: 'full-name', type: 'text', required: true, className: inputClass, placeholder: 'Ad Soyad', value: fullName, onChange: (e) => setFullName(e.target.value) })),
                 React.createElement('div', null, React.createElement('label', { htmlFor: 'email-address', className: 'sr-only' }, 'E-posta Adresi'), React.createElement('input', { id: 'email-address', name: 'email', type: 'email', required: true, className: inputClass, placeholder: 'E-posta Adresi', value: email, onChange: (e) => setEmail(e.target.value) })),
-                React.createElement('div', null, React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'), React.createElement('input', { id: 'password', name: 'password', type: 'password', required: true, className: inputClass, placeholder: 'Şifre', value: password, onChange: (e) => setPassword(e.target.value) })),
+                
+                // 💥 DÜZELTME: Şifre bloğu güncellendi (göz ikonu eklendi)
+                React.createElement('div', { className: 'relative' }, // div'e 'relative' class'ı ekledik
+                    React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'),
+                    React.createElement('input', { 
+                        id: 'password', 
+                        name: 'password', 
+                        type: showPassword ? 'text' : 'password', // Tipi dinamik hale getirdik
+                        required: true, 
+                        className: inputClass, 
+                        placeholder: 'Şifre', 
+                        value: password, 
+                        onChange: (e) => setPassword(e.target.value) 
+                    }),
+                    // GÖZ İKONU BUTONU
+                    React.createElement('button', {
+                        type: 'button', // Formu göndermemesi için 'button' tipi verdik
+                        className: 'absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700',
+                        onClick: () => setShowPassword(prev => !prev) // State'i tersine çevir
+                    },
+                        // Duruma göre ikonu değiştir
+                        showPassword
+                            ? React.createElement(Icon, { name: 'EyeOff', className: 'w-5 h-5' }) 
+                            : React.createElement(Icon, { name: 'Eye', className: 'w-5 h-5' })
+                    )
+                ),
+                // ------------------------------------
+
                 React.createElement('div', null, React.createElement('button', { type: 'submit', disabled: !isFormValid() || isLoading, className: buttonClass }, isLoading ? 'Yükleniyor...' : (isLogin ? 'Giriş Yap' : 'Kayıt Ol'))),
-                React.createElement('div', { className: 'text-center' }, 
-                    React.createElement('a', { href: '#', className: linkClass, onClick: (e) => { e.preventDefault(); setIsLogin(!isLogin); setError(null); } }, 
+                React.createElement('div', { className: 'text-center' },
+                    React.createElement('a', { href: '#', className: linkClass, onClick: (e) => { e.preventDefault(); setIsLogin(!isLogin); setError(null); } },
                         isLogin ? 'Hesabınız yok mu? Kayıt Olun.' : 'Zaten hesabınız var mı? Giriş Yapın.'
                     )
                 )
@@ -129,6 +142,7 @@ const Auth = function ({ onLogin }) {
 };
 
 // --- Chat Bileşeni (JSX'ten dönüştürülmüş) ---
+// (Chat bileşeninizin geri kalanı olduğu gibi kalır... Değişiklik yok)
 const Chat = function ({ token, user, onLogout }) {
     const [conversations, setConversations] = React.useState([]);
     const [selectedConvId, setSelectedConvId] = React.useState(null);
@@ -237,11 +251,11 @@ const Chat = function ({ token, user, onLogout }) {
             setSelectedConvId(convId);
         }
 
-        const userMessage = { 
-            conversation_id: convId, 
-            role: 'user', 
-            content: input.trim(), 
-            timestamp: new Date().toISOString() 
+        const userMessage = { 
+            conversation_id: convId, 
+            role: 'user', 
+            content: input.trim(), 
+            timestamp: new Date().toISOString() 
         };
         
         setMessages(prev => [...prev, userMessage]);
@@ -251,9 +265,9 @@ const Chat = function ({ token, user, onLogout }) {
 
         try {
             // API'ye mesaj gönder
-            const response = await axios.post(`${API}/chat/message/send`, { 
-                conversation_id: convId, 
-                content: userMessage.content 
+            const response = await axios.post(`${API}/chat/message/send`, { 
+                conversation_id: convId, 
+                content: userMessage.content 
             }, { headers: getHeaders() });
 
             const aiMessage = response.data.ai_message;
@@ -273,7 +287,7 @@ const Chat = function ({ token, user, onLogout }) {
         } catch (err) {
             setError("Mesaj gönderilirken bir hata oluştu.");
             // Hata durumunda kullanıcı mesajını geri silme veya hata mesajı gösterme
-            setMessages(prev => prev.slice(0, prev.length - 1)); 
+            setMessages(prev => prev.slice(0, prev.length - 1)); 
         } finally {
             setIsSending(false);
         }
@@ -318,7 +332,7 @@ const Chat = function ({ token, user, onLogout }) {
                     }, 'İptal'),
                     React.createElement('button', {
                         className: 'px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition duration-150',
-                        onClick: handleDeleteConversation 
+                        onClick: handleDeleteConversation 
                     }, 'Sil')
                 )
             )
@@ -328,8 +342,8 @@ const Chat = function ({ token, user, onLogout }) {
     // Mesaj Bileşeni
     const Message = ({ message }) => {
         const isUser = message.role === 'user';
-        const msgClass = isUser 
-            ? 'bg-blue-500 text-white rounded-br-none' 
+        const msgClass = isUser 
+            ? 'bg-blue-500 text-white rounded-br-none' 
             : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200';
         
         const components = {
@@ -348,16 +362,16 @@ const Chat = function ({ token, user, onLogout }) {
         };
 
         return React.createElement(
-            'div', 
+            'div', 
             { className: `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6` },
             React.createElement(
-                'div', 
+                'div', 
                 { className: `max-w-3xl px-4 py-3 rounded-xl shadow-md ${msgClass}` },
-                Markdown?.default ? 
+                Markdown?.default ? 
                 React.createElement(
-                    Markdown.default, 
+                    Markdown.default, 
                     {
-                        children: message.content, 
+                        children: message.content, 
                         className: isUser ? 'text-sm' : 'markdown-content text-sm',
                         components: components,
                     }
@@ -382,16 +396,16 @@ const Chat = function ({ token, user, onLogout }) {
     // Ana Bileşenin JSX'i (dönüştürülmüş)
     const activeConvTitle = conversations.find(c => c.id === selectedConvId)?.title || "Yeni Sohbet";
 
-    return React.createElement('div', { className: 'flex h-screen antialiased bg-gray-50' }, 
+    return React.createElement('div', { className: 'flex h-screen antialiased bg-gray-50' }, 
         // 1. Sidebar (Konuşmalar)
-        React.createElement('div', { 
+        React.createElement('div', { 
             className: `fixed z-30 inset-y-0 left-0 transform ${
                 sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            } md:relative md:translate-x-0 transition duration-300 ease-in-out md:flex md:flex-col w-64 bg-white border-r border-gray-200 shadow-xl md:shadow-none` 
+            } md:relative md:translate-x-0 transition duration-300 ease-in-out md:flex md:flex-col w-64 bg-white border-r border-gray-200 shadow-xl md:shadow-none` 
         },
             // Sidebar Header
             React.createElement('div', { className: 'p-4 flex items-center justify-between border-b border-gray-200' },
-                React.createElement('h3', { className: 'text-lg font-bold text-gray-800 flex items-center' }, 
+                React.createElement('h3', { className: 'text-lg font-bold text-gray-800 flex items-center' }, 
                     React.createElement(Icon, { name: 'MessageSquare', className: 'w-5 h-5 mr-2 text-blue-600' }),
                     'Konuşmalar'
                 ),
@@ -430,7 +444,7 @@ const Chat = function ({ token, user, onLogout }) {
             // Chat Header
             React.createElement('header', { className: 'sticky top-0 z-10 p-4 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm' },
                 // Mobil Menu Butonu
-                React.createElement('button', { 
+                React.createElement('button', { 
                     className: 'md:hidden text-gray-600 hover:text-gray-800 mr-4',
                     onClick: () => setSidebarOpen(true)
                 }, React.createElement(Icon, { name: 'Menu', className: 'w-6 h-6' })),
@@ -448,7 +462,7 @@ const Chat = function ({ token, user, onLogout }) {
                     React.createElement('button', {
                         className: 'p-2 text-gray-600 hover:bg-gray-100 rounded-full transition duration-150',
                         title: 'Çıkış Yap',
-                        onClick: onLogout 
+                        onClick: onLogout 
                     }, React.createElement(Icon, { name: 'LogOut', className: 'w-5 h-5' }))
                 )
             ),
@@ -475,7 +489,7 @@ const Chat = function ({ token, user, onLogout }) {
                         placeholder: 'Mesajınızı yazın...',
                         value: input,
                         onChange: (e) => setInput(e.target.value),
-                        onKeyDown: (e) => { 
+                        onKeyDown: (e) => { 
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
                                 handleSend(e);
@@ -570,4 +584,3 @@ if (container && ReactDOM && ReactDOM.render) {
 } else {
     console.error("KRİTİK HATA: Root elementi veya ReactDOM kütüphanesi bulunamadı/yüklenmedi.");
 }
-
