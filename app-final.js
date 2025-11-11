@@ -520,11 +520,9 @@ setMessages(prev => [...prev, {
 
 // --- Ana Uygulama Bileşeni (JSX'ten dönüştürülmüş) ---
 const App = function () {
-    // HOOK'lar
     const [token, setToken] = React.useState(localStorage.getItem('token'));
     const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
 
-    // HANDLER'lar
     const handleLogin = (newToken, newUser) => {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(newUser));
@@ -539,39 +537,35 @@ const App = function () {
         setUser(null);
     };
 
-    // 💥 KRİTİK KONTROLÜ v5 BİLEŞENLERİNE GÖRE GÜNCELLE
-    if (!RRD || !RRD.BrowserRouter || !RRD.Switch || !RRD.Route || !RRD.Redirect) {
-        return React.createElement('div', { className: 'p-10 text-center text-red-600 font-bold' }, 'KRİTİK HATA: React Router kütüphanesi yüklenemedi. index.html dosyasını ve CDN sırasını kontrol edin.');
+    if (!HashRouter || !Routes || !Route || !Navigate) {
+        return React.createElement(
+            'div',
+            { className: 'p-10 text-center text-red-600 font-bold' },
+            'KRİTİK HATA: React Router DOM yüklü değil. index.html dosyasındaki CDN sırasını kontrol edin.'
+        );
     }
 
-    // 💥 YÖNLENDİRME YAPISI v5 (Switch/Redirect) OLARAK GÜNCELLENDİ
     return React.createElement(
-        BrowserRouter,
+        HashRouter,
         null,
         React.createElement(
-            Switch, // v6'daki Routes yerine Switch kullanıldı
+            Routes,
             null,
-            // Route 1: Giriş/Kayıt yolu
+            React.createElement(Route, {
+                path: '/',
+                element: token
+                    ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout })
+                    : React.createElement(Navigate, { to: '/auth', replace: true })
+            }),
             React.createElement(Route, {
                 path: '/auth',
-                // v5'te 'element' yerine 'render' kullanılır
-                render: () => token 
-                    ? React.createElement(Redirect, { to: '/' }) // Redirect kullanıldı
+                element: token
+                    ? React.createElement(Navigate, { to: '/', replace: true })
                     : React.createElement(Auth, { onLogin: handleLogin })
             }),
-            // Route 2: Ana uygulama yolu
-            React.createElement(Route, {
-                exact: true, // v5'te exact: true kullanımı önemlidir
-                path: '/',
-                // v5'te 'element' yerine 'render' kullanılır
-                render: () => token 
-                    ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout }) 
-                    : React.createElement(Redirect, { to: '/auth' }) // Redirect kullanıldı
-            }),
-            // Route 3: Yakalama yolu (en sonda olmalı)
             React.createElement(Route, {
                 path: '*',
-                render: () => React.createElement(Redirect, { to: '/' }) // Redirect kullanıldı
+                element: React.createElement(Navigate, { to: token ? '/' : '/auth', replace: true })
             })
         )
     );
@@ -586,4 +580,5 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error("KRİTİK HATA: React 18 createRoot bulunamadı.");
 }
+
 
