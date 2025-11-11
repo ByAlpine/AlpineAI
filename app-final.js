@@ -5,7 +5,8 @@
 
 // ----------------------------------------------------
 // SADECE GLOBAL SABİTLER
-const API = '/api';
+const BASE_API = 'https://seninbackend.onrender.com/api';
+const API = BASE_API; // <---- Bunu ekle
 const axios = window.axios;
 const ReactDOM = window.ReactDOM;
 
@@ -685,3 +686,4 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error('KRİTİK HATA: React 18 createRoot bulunamadı.');
 }
+
