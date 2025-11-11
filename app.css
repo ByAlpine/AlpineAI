@@ -115,6 +115,10 @@ code {
   }
 }
 
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
 /* Tailwind yardımcı sınıf karşılıkları */
 /* Minimal utility CSS covering the Tailwind classes used by Alpine AI Chat */
 :root {
@@ -131,6 +135,7 @@ body {
 
 /* Layout & display */
 .flex { display: flex; }
+.flex-col { flex-direction: column; }
 .inline-flex { display: inline-flex; }
 .hidden { display: none; }
 .relative { position: relative; }
@@ -139,10 +144,15 @@ body {
 .sticky { position: sticky; }
 .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
 .inset-y-0 { top: 0; bottom: 0; }
+.left-0 { left: 0; }
 .right-0 { right: 0; }
 .top-0 { top: 0; }
 .z-10 { z-index: 10; }
+.z-30 { z-index: 30; }
 .z-50 { z-index: 50; }
+.transform { transform: translate(0); }
+.translate-x-0 { transform: translateX(0); }
+.-translate-x-full { transform: translateX(-100%); }
 .min-h-screen { min-height: 100vh; }
 .h-screen { height: 100vh; }
 .w-full { width: 100%; }
@@ -150,8 +160,11 @@ body {
 .max-w-sm { max-width: 24rem; }
 .max-w-md { max-width: 28rem; }
 .max-w-3xl { max-width: 48rem; }
+.w-64 { width: 16rem; }
 .w-2 { width: 0.5rem; }
+.w-4 { width: 1rem; }
 .h-2 { height: 0.5rem; }
+.h-4 { height: 1rem; }
 .w-5 { width: 1.25rem; }
 .h-5 { height: 1.25rem; }
 .w-6 { width: 1.5rem; }
@@ -160,6 +173,7 @@ body {
 .h-10 { height: 2.5rem; }
 .max-w-none { max-width: none; }
 .h-full { height: 100%; }
+.flex-shrink-0 { flex-shrink: 0; }
 .overflow-y-auto { overflow-y: auto; }
 .overflow-x-auto { overflow-x: auto; }
 .resize-none { resize: none; }
@@ -174,6 +188,11 @@ body {
 }
 @media (min-width: 768px) {
   .md\:hidden { display: none; }
+  .md\:flex { display: flex; }
+  .md\:flex-col { flex-direction: column; }
+  .md\:relative { position: relative; }
+  .md\:translate-x-0 { transform: translateX(0); }
+  .md\:shadow-none { box-shadow: none; }
 }
 
 /* Spacing */
@@ -238,9 +257,13 @@ body {
 .bg-gray-100 { background-color: #f3f4f6; }
 .bg-gray-200 { background-color: #e5e7eb; }
 .bg-gray-300 { background-color: #d1d5db; }
+.bg-gray-400 { background-color: #9ca3af; }
+.bg-gray-500 { background-color: #6b7280; }
 .bg-gray-800 { background-color: #1f2937; }
 .bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-100 { background-color: #dbeafe; }
 .bg-blue-300 { background-color: #93c5fd; }
+.bg-blue-500 { background-color: #3b82f6; }
 .bg-blue-600 { background-color: #2563eb; }
 .bg-blue-700 { background-color: #1d4ed8; }
 .bg-red-100 { background-color: #fee2e2; }
@@ -264,6 +287,7 @@ body {
 .border-2 { border-width: 2px; border-style: solid; border-color: #d1d5db; }
 .border-b { border-bottom-width: 1px; border-style: solid; border-color: #e5e7eb; }
 .border-t { border-top-width: 1px; border-style: solid; border-color: #e5e7eb; }
+.border-r { border-right-width: 1px; border-style: solid; border-color: #e5e7eb; }
 .border-l-4 { border-left-width: 4px; border-style: solid; }
 .border-gray-200 { border-color: #e5e7eb; }
 .border-gray-300 { border-color: #d1d5db; }
@@ -277,6 +301,8 @@ body {
 .rounded-xl { border-radius: 0.75rem; }
 .rounded-2xl { border-radius: 1rem; }
 .rounded-full { border-radius: 9999px; }
+.rounded-br-none { border-bottom-right-radius: 0; }
+.rounded-tl-none { border-top-left-radius: 0; }
 
 /* Effects */
 .shadow-sm { box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1); }
@@ -325,7 +351,3 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
-.fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
