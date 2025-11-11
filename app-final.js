@@ -10,12 +10,16 @@ const API = '/api';
 const axios = window.axios;
 const ReactDOM = window.ReactDOM;
 
-// 💥 KRİTİK DÜZELTME: v5 bileşenlerini (Switch, Redirect) doğru şekilde atıyoruz.
+// 💥 Router (v6)
 const RRD = window.ReactRouterDOM;
-const BrowserRouter = RRD.BrowserRouter;
-const Route = RRD.Route;
-const Switch = RRD.Switch; // v6'daki Routes yerine v5'te Switch kullanılır
-const Redirect = RRD.Redirect; // v6'daki Navigate yerine v5'te Redirect kullanılır
+const BrowserRouter = RRD?.BrowserRouter;
+const Routes = RRD?.Routes;
+const Route = RRD?.Route;
+const Navigate = RRD?.Navigate;
+
+if (!BrowserRouter || !Routes || !Route || !Navigate) {
+  console.error("React Router DOM v6 yüklenemedi. CDN sırasını kontrol et.");
+}
 
 // --- Lucide Icon Yedek Bileşeni ---
 // 💥 DÜZELTME: Çift tanımlama kaldırıldı. Sadece Göz ikonlarını içeren bu sürüm kaldı.
@@ -115,20 +119,7 @@ const Auth = function ({ onLogin }) {
                         placeholder: 'Şifre', 
                         value: password, 
                         onChange: (e) => setPassword(e.target.value) 
-                    })
-,
-              React.createElement(
-                'div',
-                { className: 'flex items-center gap-2 text-sm text-gray-600 mt-1' },
-                React.createElement('input', {
-                  type: 'checkbox',
-                  checked: showPassword,
-                  onChange: () => setShowPassword(!showPassword),
-                  className: 'rounded border-gray-300'
-                }),
-                'Şifreyi göster'
-              )
-,
+                    }),
                     // GÖZ İKONU BUTONU
                     React.createElement('button', {
                         type: 'button', // Formu göndermemesi için 'button' tipi verdik
@@ -207,7 +198,7 @@ const Chat = function ({ token, user, onLogout }) {
             return;
         }
         try {
-            const response = await axios.get(`${API}/chat/messages/${convId}`, { headers: getHeaders() });
+            const response = await axios.get(`${API}/chat/conversation/${convId}/messages`, { headers: getHeaders() });
             setMessages(response.data);
         } catch (err) {
             setError("Mesajlar yüklenirken bir hata oluştu.");
@@ -227,7 +218,7 @@ const Chat = function ({ token, user, onLogout }) {
     // Yeni Sohbet Başlatma
     const startNewConversation = async () => {
         try {
-            const response = await axios.post(`${API}/chat/conversation/new`, { title: "Yeni Sohbet" }, { headers: getHeaders() });
+            const response = await axios.post(`${API}/chat/conversation`, { title: "Yeni Sohbet" }, { headers: getHeaders() });
             const newConv = response.data;
             setConversations([newConv, ...conversations]);
             setSelectedConvId(newConv.id);
@@ -249,7 +240,7 @@ const Chat = function ({ token, user, onLogout }) {
         if (!convId && conversations.length === 0) {
             // Hiç sohbet yoksa, önce yeni sohbet oluştur
             try {
-                const response = await axios.post(`${API}/chat/conversation/new`, { title: input.substring(0, 30) }, { headers: getHeaders() });
+                const response = await axios.post(`${API}/chat/conversation`, { title: input.substring(0, 30) }, { headers: getHeaders() });
                 convId = response.data.id;
                 newConvTitle = response.data.title;
                 setConversations([response.data]); // Yeni oluşturulan sohbeti listeye ekle
@@ -278,21 +269,22 @@ const Chat = function ({ token, user, onLogout }) {
 
         try {
             // API'ye mesaj gönder
-            const response = await axios.post(`${API}/chat/message/send`, { 
-                conversation_id: convId, 
-                content: userMessage.content 
-            }, { headers: getHeaders() });
+            const formData = new FormData();
+formData.append('conversation_id', convId);
+formData.append('message', userMessage.content);
 
-            const aiMessage = response.data.ai_message;
+const response = await axios.post(`${API}/chat/message`, formData, {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
 
-            setMessages(prev => [...prev, {
-                conversation_id: convId,
-                role: 'assistant',
-                content: aiMessage.content,
-                timestamp: aiMessage.timestamp
-            }]);
+const ai = response.data.assistant_message;
 
-            // İlk mesajdan sonra sohbet başlığını güncelle (varsa)
+setMessages(prev => [...prev, {
+  conversation_id: convId,
+  role: 'assistant',
+  content: ai.content,
+  timestamp: ai.created_at
+}]);// İlk mesajdan sonra sohbet başlığını güncelle (varsa)
             if (newConvTitle && convId) {
                 fetchConversations(); // Başlık güncellemelerini çek
             }
@@ -587,13 +579,10 @@ const App = function () {
 
 // 💥 KODUN BAŞLATILMASI
 const container = document.getElementById('root');
-
-if (container && ReactDOM && ReactDOM.render) {
-    // React 17 CDN'i kullanıldığı için .render kullanıyoruz
-    ReactDOM.render(
-        React.createElement(App, null),
-        container
-    );
+if (container && window.ReactDOM && window.ReactDOM.createRoot) {
+  window.ReactDOM.createRoot(container).render(
+    React.createElement(React.StrictMode, null, React.createElement(App, null))
+  );
 } else {
-    console.error("KRİTİK HATA: Root elementi veya ReactDOM kütüphanesi bulunamadı/yüklenmedi.");
+  console.error("KRİTİK HATA: React 18 createRoot bulunamadı.");
 }
