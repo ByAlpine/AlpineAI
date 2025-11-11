@@ -1,4 +1,32 @@
 # =========================================================================
+# VERİTABANI BAĞLANTISI (DÜZELTİLDİ)
+# =========================================================================
+
+MONGO_URL = os.getenv("MONGO_URL")
+DB_NAME = os.getenv("DB_NAME", "alpine_ai_db")
+
+if not MONGO_URL:
+    raise ValueError("MONGO_URL environment variable is not set")
+
+# SRV bağlantıları için ekstra parametre gerekmez; timeout ekledik.
+client = AsyncIOMotorClient(
+    MONGO_URL,
+    serverSelectionTimeoutMS=8000,  # 8 sn
+)
+
+db = client.get_database(DB_NAME)
+
+@app.on_event("startup")
+async def verify_mongo_connection():
+    """Uygulama açılırken Mongo'ya ping at; hata logla."""
+    try:
+        await client.admin.command("ping")
+        logging.info("✅ MongoDB bağlantısı başarılı.")
+    except Exception as e:
+        logging.error(f"❌ MongoDB bağlantı HATASI: {e}")
+        # Prod'da uygulamayı ayakta tutmak isteyebilirsin; burada raise etmiyoruz.
+
+# =========================================================================
 # GEREKLİ KÜTÜPHANE İÇE AKTARMALARI
 # =========================================================================
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, status
@@ -441,19 +469,6 @@ async def send_message(
         'assistant_message': assistant_message
     }
 
-@api_router.delete("/chat/conversation/{conversation_id}")
-async def delete_conversation(conversation_id: str, current_user: User = Depends(get_current_user)):
-    """Konuşmayı ve mesajlarını siler."""
-    conv_result = await db.conversations.delete_one({'id': conversation_id, 'user_id': current_user.id})
-    if conv_result.deleted_count == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Conversation not found or not authorized"
-        )
-
-    await db.messages.delete_many({'conversation_id': conversation_id})
-    return {"message": "Conversation and messages deleted successfully"}
-
 # =========================================================================
 # GENEL YAPILANDIRMA
 # =========================================================================
@@ -517,3 +532,4 @@ async def health_check():
     """Render için Health check endpoint'i."""
     # Bu, / mount'undan etkilenmez ve Render'ın durumu kontrol etmesini sağlar.
     return {"status": "healthy"}
+
