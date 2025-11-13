@@ -354,78 +354,38 @@ async def send_message(
     file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
 ):
-    """Mesaj gönderir ve AI'dan yanıt alır."""
-    if not gemini_client:
+    """
+    Mesaj gönderir ve (şimdilik) basit test cevabı döner.
+    Gemini'yi geçici olarak devre dışı bıraktık.
+    """
+
+    # 1. Konuşmayı doğrula
+    conversation = await db.conversations.find_one({
+        "id": chat_req.conversation_id,
+        "user_id": current_user.id,
+    })
+    if not conversation:
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Gemini hizmeti kullanıma hazır değil.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Conversation not found",
         )
 
-    conversation = await db.conversations.find_one(
-        {"id": chat_req.conversation_id, "user_id": current_user.id}
-    )
-    if not conversation:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
-    history = await get_gemini_chat_history(chat_req.conversation_id)
-
-    system_instruction = (
-        "You are Alpine, a helpful and friendly AI assistant created to help users with any questions or tasks. "
-        "Be conversational, informative, and helpful."
-    )
-
-    chat_session = gemini_client.chats.create(
-        model=GEMINI_MODEL,
-        history=history,
-        config=genai.types.GenerateContentConfig(system_instruction=system_instruction),
-    )
-
     user_message_content = chat_req.message
-    gemini_parts: List[Any] = [user_message_content]
 
-    image_data_to_save = None
-    has_image_to_save = False
-
-    if file and file.filename:
-        file_bytes = await file.read()
-        if file.content_type and file.content_type.startswith("image/"):
-            image_base64 = base64.b64encode(file_bytes).decode("utf-8")
-            image_data_to_save = image_base64
-            has_image_to_save = True
-            gemini_parts.append(
-                genai.types.Part.from_bytes(data=file_bytes, mime_type=file.content_type)
-            )
-        else:
-            user_message_content += f"\n\n(Dosya adı: {file.filename}, Tür: {file.content_type} eklendi.)"
-
+    # 2. Kullanıcı mesajını kaydet
     user_message = Message(
         conversation_id=chat_req.conversation_id,
         role="user",
         content=user_message_content,
-        has_image=has_image_to_save,
-        image_data=image_data_to_save,
+        has_image=False,
+        image_data=None,
     )
     user_msg_dict = user_message.model_dump()
     user_msg_dict["created_at"] = user_msg_dict["created_at"].isoformat()
     await db.messages.insert_one(user_msg_dict)
 
-    is_first_message = len(history) == 0
-
-    try:
-        llm_response = await chat_session.send_message(contents=gemini_parts)
-        assistant_message_content = llm_response.text
-    except APIError as e:
-        logging.error(f"Gemini API Error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="AI'dan yanıt alınamadı. Lütfen API anahtarınızı kontrol edin.",
-        )
-    except Exception as e:
-        logging.error(f"Unexpected error during chat: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Beklenmedik bir hata oluştu.",
-        )
+    # 3. Asistan cevabını oluştur (şimdilik basit bir echo)
+    assistant_message_content = f"Test cevabı: {user_message_content}"
 
     assistant_message = Message(
         conversation_id=chat_req.conversation_id,
@@ -436,23 +396,16 @@ async def send_message(
     assistant_msg_dict["created_at"] = assistant_msg_dict["created_at"].isoformat()
     await db.messages.insert_one(assistant_msg_dict)
 
-    if is_first_message:
-        title = await generate_title_from_message(chat_req.message)
-        await db.conversations.update_one(
-            {"id": chat_req.conversation_id},
-            {"$set": {"title": title, "updated_at": datetime.now(timezone.utc).isoformat()}},
-        )
-    else:
-        await db.conversations.update_one(
-            {"id": chat_req.conversation_id},
-            {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
-        )
+    # 4. Konuşmanın updated_at alanını güncelle
+    await db.conversations.update_one(
+        {"id": chat_req.conversation_id},
+        {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
 
     return {
         "user_message": user_message,
         "assistant_message": assistant_message,
     }
-
 
 @api_router.delete("/chat/conversation/{conversation_id}")
 async def delete_conversation(conversation_id: str, current_user: User = Depends(get_current_user)):
@@ -496,3 +449,4 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
+
