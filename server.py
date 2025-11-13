@@ -45,8 +45,9 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "168"))
 
 # Gemini Model Ayarları
+# (default'u gemini-1.5-flash yaptım, en stabil model)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 
 # =========================================================================
 # VERİTABANI BAĞLANTISI
@@ -70,7 +71,6 @@ async def verify_mongo_connection():
         logging.info("✅ MongoDB bağlantısı başarılı.")
     except Exception as e:
         logging.error(f"❌ MongoDB bağlantı HATASI: {e}")
-        # Prod'da app'i tamamen düşürmek istemiyorsan burada raise etmiyoruz.
 
 
 @app.on_event("shutdown")
@@ -354,15 +354,13 @@ async def send_message(
     file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
 ):
-    """Mesaj gönderir ve AI'dan yanıt alır."""
-    # 1. Gemini hazır mı?
+    """Mesaj gönderir ve Gemini'den gerçek yanıt alır."""
     if not gemini_client:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Gemini hizmeti kullanıma hazır değil.",
         )
 
-    # 2. Konuşma var mı, bu kullanıcıya mı ait?
     conversation = await db.conversations.find_one(
         {"id": chat_req.conversation_id, "user_id": current_user.id}
     )
@@ -372,16 +370,13 @@ async def send_message(
             detail="Conversation not found",
         )
 
-    # 3. Önceki mesajları al (history)
     history = await get_gemini_chat_history(chat_req.conversation_id)
 
-    # 4. Sistem mesajı
     system_instruction = (
         "You are Alpine, a helpful and friendly AI assistant created to help users with any questions or tasks. "
         "Be conversational, informative, and helpful."
     )
 
-    # 5. Gemini chat oturumu oluştur
     try:
         chat_session = gemini_client.chats.create(
             model=GEMINI_MODEL,
@@ -394,17 +389,15 @@ async def send_message(
         logging.error(f"Gemini chat oturumu oluşturulamadı: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="AI oturumu başlatılamadı. Lütfen daha sonra tekrar deneyin.",
+            detail=f"Gemini chat oturumu oluşturulamadı: {type(e).__name__}: {e}",
         )
 
-    # 6. Kullanıcı mesajını hazırla
     user_message_content = chat_req.message
     gemini_parts: List[Any] = [user_message_content]
 
     image_data_to_save = None
     has_image_to_save = False
 
-    # 7. Dosya / görsel varsa işle
     if file and file.filename:
         file_bytes = await file.read()
         if file.content_type and file.content_type.startswith("image/"):
@@ -422,7 +415,6 @@ async def send_message(
                 f"\n\n(Dosya adı: {file.filename}, Tür: {file.content_type} eklendi.)"
             )
 
-    # 8. Kullanıcı mesajını DB'ye kaydet
     user_message = Message(
         conversation_id=chat_req.conversation_id,
         role="user",
@@ -434,10 +426,9 @@ async def send_message(
     user_msg_dict["created_at"] = user_msg_dict["created_at"].isoformat()
     await db.messages.insert_one(user_msg_dict)
 
-    # 9. İlk mesaj mı?
     is_first_message = len(history) == 0
 
-         # 10. Gemini'den yanıt al
+    # >>> BURASI: GERÇEK GEMINI ÇAĞRISI + HATA DETAYI <<<
     try:
         llm_response = chat_session.send_message(contents=gemini_parts)
         assistant_message_content = llm_response.text
@@ -445,16 +436,15 @@ async def send_message(
         logging.error(f"Gemini API Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="AI'dan yanıt alınamadı. Lütfen API anahtarınızı kontrol edin.",
+            detail=f"Gemini API error: {e}",
         )
     except Exception as e:
         logging.error(f"Unexpected error during chat: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Beklenmedik bir hata oluştu.",
+            detail=f"Unexpected error: {type(e).__name__}: {e}",
         )
 
-    # 11. Asistan mesajını DB'ye kaydet
     assistant_message = Message(
         conversation_id=chat_req.conversation_id,
         role="assistant",
@@ -464,7 +454,6 @@ async def send_message(
     assistant_msg_dict["created_at"] = assistant_msg_dict["created_at"].isoformat()
     await db.messages.insert_one(assistant_msg_dict)
 
-    # 12. Konuşma başlığını / updated_at alanını güncelle
     if is_first_message:
         title = await generate_title_from_message(chat_req.message)
         await db.conversations.update_one(
@@ -482,7 +471,6 @@ async def send_message(
             {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
         )
 
-    # 13. Frontend'e cevap
     return {
         "user_message": user_message,
         "assistant_message": assistant_message,
@@ -531,6 +519,3 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
-
-
-
