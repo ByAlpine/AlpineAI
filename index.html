@@ -1,33 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
     <title>Alpine AI Chat</title>
+
+    <!-- Google Fontlar -->
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=Inter:wght@400;500;600;700&display=swap");
     </style>
 
+    <!-- Senin CSS'in -->
     <link rel="stylesheet" href="app.css?v=1730832001" />
   </head>
   <body>
     <div id="root"></div>
 
-    <!-- React -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-
-    <!-- ✅ React Router DOM (v6 UMD) EKLENDİ -->
+    <!-- React 18 -->
     <script
       crossorigin
-      src="https://unpkg.com/react-router-dom@6/umd/react-router-dom.production.min.js">
-    </script>
+      src="https://unpkg.com/react@18/umd/react.production.min.js"
+    ></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+
+    <!-- 🔥 ÖNEMLİ: React Router DOM v6 (HashRouter, Routes, Navigate vs buradan geliyor) -->
+    <script
+      crossorigin
+      src="https://unpkg.com/react-router-dom@6.28.0/umd/react-router-dom.production.min.js"
+    ></script>
 
     <!-- Diğer kütüphaneler -->
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.7/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/react-markdown@9.0.1/react-markdown.min.js"></script>
 
-    <!-- Uygulama bundle'ı -->
+    <!-- Senin derlenmiş React app'in -->
     <script src="app-final.js?v=1730832000"></script>
   </body>
 </html>
