@@ -6,7 +6,7 @@
 // ----------------------------------------------------
 // SADECE GLOBAL SABİTLER
 // 💡 BURAYI kendi backend Render URL'inle değiştir
-const BASE_API = 'https://seninbackend.onrender.com/api';
+const BASE_API = 'https://alpineai.onrender.com/api';
 const API = BASE_API;
 
 const axios = window.axios;
@@ -687,3 +687,4 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error('KRİTİK HATA: React 18 createRoot bulunamadı.');
 }
+
