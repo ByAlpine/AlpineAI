@@ -1,25 +1,23 @@
 /**
  * ALPINE AI CHAT APP - DERLENMİŞ NİHAİ TEK DOSYA
- * Router v6 + HashRouter (statik hostlar için), Show/Hide Password eklendi.
+ * Router v6 (varsa) + HashRouter, Show/Hide Password eklendi.
  */
 
 // ----------------------------------------------------
 // SADECE GLOBAL SABİTLER
+// 💡 BURAYI kendi backend Render URL'inle değiştir
 const BASE_API = 'https://seninbackend.onrender.com/api';
-const API = BASE_API; // <---- Bunu ekle
+const API = BASE_API;
+
 const axios = window.axios;
 const ReactDOM = window.ReactDOM;
 
-// Router (v6)
-const RRD = window.ReactRouterDOM;
+// Router (opsiyonel)
+const RRD = window.ReactRouterDOM || null;
 const HashRouter = RRD?.HashRouter;
 const Routes = RRD?.Routes;
 const Route = RRD?.Route;
 const Navigate = RRD?.Navigate;
-
-if (!HashRouter || !Routes || !Route || !Navigate) {
-  console.error('React Router DOM v6 yüklenemedi. CDN sırasını kontrol et.');
-}
 
 // --- Basit Icon Yedeği (Lucide yoksa) ---
 const Icon = ({ name, className = 'w-5 h-5', size }) => {
@@ -426,7 +424,7 @@ const Chat = function ({ token, user, onLogout }) {
 
     return React.createElement(
       'div',
-      { className: `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6'` },
+      { className: `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6` }, // gereksiz ' kaldırıldı
       React.createElement(
         'div',
         { className: `max-w-3xl px-4 py-3 rounded-xl shadow-md ${msgClass}` },
@@ -643,14 +641,17 @@ const App = function () {
     setUser(null);
   };
 
-  if (!HashRouter || !Routes || !Route || !Navigate) {
-    return React.createElement(
-      'div',
-      { className: 'p-10 text-center text-red-600 font-bold' },
-      'KRİTİK HATA: React Router DOM yüklü değil. index.html dosyasındaki CDN sırasını kontrol edin.'
-    );
+  const hasRouter = HashRouter && Routes && Route && Navigate;
+
+  // Eğer React Router DOM yoksa, basit fallback: sadece token durumuna göre Auth / Chat
+  if (!hasRouter) {
+    console.warn('React Router DOM bulunamadı, Router’sız fallback modunda çalışıyor.');
+    return token
+      ? React.createElement(Chat, { token, user, onLogout: handleLogout })
+      : React.createElement(Auth, { onLogin: handleLogin });
   }
 
+  // Router varsa, HashRouter ile çalış
   return React.createElement(
     HashRouter,
     null,
@@ -686,4 +687,3 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error('KRİTİK HATA: React 18 createRoot bulunamadı.');
 }
-
