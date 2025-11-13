@@ -437,9 +437,9 @@ async def send_message(
     # 9. İlk mesaj mı?
     is_first_message = len(history) == 0
 
-    # 10. Gemini'den yanıt al
+         # 10. Gemini'den yanıt al
     try:
-        llm_response = await chat_session.send_message(contents=gemini_parts)
+        llm_response = chat_session.send_message(contents=gemini_parts)
         assistant_message_content = llm_response.text
     except APIError as e:
         logging.error(f"Gemini API Error: {e}")
@@ -531,5 +531,6 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
+
 
 
