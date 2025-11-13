@@ -253,61 +253,49 @@ except Exception as e:
     gemini_client = None
 
 
-async def get_gemini_chat_history(conversation_id: str) -> List[Dict[str, Any]]:
+async def get_gemini_chat_history(conversation_id: str) -> List[Any]:
     """Konuşma geçmişini Gemini formatında döner."""
     messages = await db.messages.find(
         {"conversation_id": conversation_id},
         {"_id": 0, "role": 1, "content": 1, "image_data": 1, "has_image": 1},
     ).sort("created_at", 1).to_list(1000)
 
-    history = []
-    for msg in messages:
-        parts = [msg["content"]]
+    history: List[Any] = []
 
+    for msg in messages:
+        parts: List[Any] = []
+
+        # Metni Part'e çevir
+        parts.append(
+            genai.types.Part.from_text(
+                text=msg["content"]
+            )
+        )
+
+        # Eğer görsel varsa onu da ekle
         if msg.get("has_image") and msg.get("image_data"):
             try:
                 image_bytes = base64.b64decode(msg["image_data"])
-                parts.append(genai.types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"))
+                parts.append(
+                    genai.types.Part.from_bytes(
+                        data=image_bytes,
+                        mime_type="image/jpeg",  # istersen burada mime type'ı dinamikleştirebilirsin
+                    )
+                )
             except Exception as e:
                 logging.warning(f"Failed to decode image data for history: {e}")
 
         gemini_role = "user" if msg["role"] == "user" else "model"
-        history.append({"role": gemini_role, "parts": parts})
 
-    return history
-
-
-async def generate_title_from_message(first_message: str) -> str:
-    """İlk mesajdan başlık oluşturur."""
-    if not gemini_client:
-        return "New Chat Topic"
-
-    system_instruction = (
-        "You are a title generator AI. Your sole purpose is to take the user's first message in a chat and "
-        "generate a concise, descriptive, and human-readable title (max 5-7 words, NO punctuation marks like "
-        "quotes or periods at the end). Respond ONLY with the title."
-    )
-
-    try:
-        response = gemini_client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=[f"Generate a title for this chat: '{first_message}'"],
-            config=genai.types.GenerateContentConfig(system_instruction=system_instruction),
+        # Content objesi oluştur
+        content = genai.types.Content(
+            role=gemini_role,
+            parts=parts,
         )
 
-        title = response.text.strip().replace('"', "").replace("'", "").replace(".", "")
+        history.append(content)
 
-        if len(title.split()) > 7:
-            return "New Chat Topic"
-
-        return title
-
-    except APIError as e:
-        logging.error(f"Gemini API Error (Title generation): {e}")
-        return "New Chat Topic"
-    except Exception as e:
-        logging.error(f"Title generation failed: {e}")
-        return "New Chat Topic"
+    return history
 
 # =========================================================================
 # CHAT ENDPOINTS
@@ -354,13 +342,15 @@ async def send_message(
     file: Optional[UploadFile] = File(None),
     current_user: User = Depends(get_current_user),
 ):
-    """Mesaj gönderir ve Gemini'den gerçek yanıt alır."""
+    """Mesaj gönderir ve AI'dan yanıt alır."""
+    # 1. Gemini hazır mı?
     if not gemini_client:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Gemini hizmeti kullanıma hazır değil.",
         )
 
+    # 2. Konuşma var mı, bu kullanıcıya mı ait?
     conversation = await db.conversations.find_one(
         {"id": chat_req.conversation_id, "user_id": current_user.id}
     )
@@ -370,13 +360,16 @@ async def send_message(
             detail="Conversation not found",
         )
 
+    # 3. Önceki mesajları al (history)
     history = await get_gemini_chat_history(chat_req.conversation_id)
 
+    # 4. Sistem mesajı
     system_instruction = (
         "You are Alpine, a helpful and friendly AI assistant created to help users with any questions or tasks. "
         "Be conversational, informative, and helpful."
     )
 
+    # 5. Gemini chat oturumu oluştur
     try:
         chat_session = gemini_client.chats.create(
             model=GEMINI_MODEL,
@@ -389,21 +382,32 @@ async def send_message(
         logging.error(f"Gemini chat oturumu oluşturulamadı: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Gemini chat oturumu oluşturulamadı: {type(e).__name__}: {e}",
+            detail="AI oturumu başlatılamadı. Lütfen daha sonra tekrar deneyin.",
         )
 
+    # 6. Kullanıcı mesajını hazırla
     user_message_content = chat_req.message
-    gemini_parts: List[Any] = [user_message_content]
 
     image_data_to_save = None
     has_image_to_save = False
 
+    # 7. Gemini'e gidecek Part listesi
+    gemini_parts: List[Any] = []
+
+    # Metni mutlaka Part'e çevir
+    if user_message_content:
+        gemini_parts.append(
+            genai.types.Part.from_text(text=user_message_content)
+        )
+
+    # Dosya / görsel varsa işle
     if file and file.filename:
         file_bytes = await file.read()
         if file.content_type and file.content_type.startswith("image/"):
             image_base64 = base64.b64encode(file_bytes).decode("utf-8")
             image_data_to_save = image_base64
             has_image_to_save = True
+
             gemini_parts.append(
                 genai.types.Part.from_bytes(
                     data=file_bytes,
@@ -411,10 +415,12 @@ async def send_message(
                 )
             )
         else:
+            # Resim değilse sadece metne bilgi olarak ekle
             user_message_content += (
                 f"\n\n(Dosya adı: {file.filename}, Tür: {file.content_type} eklendi.)"
             )
 
+    # 8. Kullanıcı mesajını DB'ye kaydet
     user_message = Message(
         conversation_id=chat_req.conversation_id,
         role="user",
@@ -426,25 +432,33 @@ async def send_message(
     user_msg_dict["created_at"] = user_msg_dict["created_at"].isoformat()
     await db.messages.insert_one(user_msg_dict)
 
+    # 9. İlk mesaj mı?
     is_first_message = len(history) == 0
 
-    # >>> BURASI: GERÇEK GEMINI ÇAĞRISI + HATA DETAYI <<<
+    # 10. Gemini'den yanıt al
     try:
-        llm_response = chat_session.send_message(contents=gemini_parts)
+        # send_message için: async değil, keyword yok → sadece pozisyonel argüman
+        if len(gemini_parts) == 1:
+            send_content = gemini_parts[0]
+        else:
+            send_content = gemini_parts
+
+        llm_response = chat_session.send_message(send_content)
         assistant_message_content = llm_response.text
     except APIError as e:
         logging.error(f"Gemini API Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Gemini API error: {e}",
+            detail="AI'dan yanıt alınamadı. Lütfen API anahtarınızı kontrol edin.",
         )
     except Exception as e:
         logging.error(f"Unexpected error during chat: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Unexpected error: {type(e).__name__}: {e}",
+            detail="Beklenmedik bir hata oluştu.",
         )
 
+    # 11. Asistan mesajını DB'ye kaydet
     assistant_message = Message(
         conversation_id=chat_req.conversation_id,
         role="assistant",
@@ -454,6 +468,7 @@ async def send_message(
     assistant_msg_dict["created_at"] = assistant_msg_dict["created_at"].isoformat()
     await db.messages.insert_one(assistant_msg_dict)
 
+    # 12. Konuşma başlığını / updated_at alanını güncelle
     if is_first_message:
         title = await generate_title_from_message(chat_req.message)
         await db.conversations.update_one(
@@ -471,10 +486,12 @@ async def send_message(
             {"$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
         )
 
+    # 13. Frontend'e cevap
     return {
         "user_message": user_message,
         "assistant_message": assistant_message,
     }
+
 
 
 @api_router.delete("/chat/conversation/{conversation_id}")
@@ -519,3 +536,4 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
+
