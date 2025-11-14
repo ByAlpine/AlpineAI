@@ -192,7 +192,7 @@ const Auth = function ({ onLogin }) {
 };
 
 // ============================= CHAT =============================
-const Chat = function ({ token, user, onLogout }) {
+const Chat = function ({ token, user, onLogout, theme, onToggleTheme }) {
   const [conversations, setConversations] = React.useState([]);
   const [selectedConvId, setSelectedConvId] = React.useState(null);
   const [messages, setMessages] = React.useState([]);
@@ -202,6 +202,12 @@ const Chat = function ({ token, user, onLogout }) {
   const messagesEndRef = React.useRef(null);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
+
+  // ---- Yeni eklenen state'ler ----
+  const [selectedFile, setSelectedFile] = React.useState(null);         // Gönderilecek resim
+  const [previewImage, setPreviewImage] = React.useState(null);         // Büyük önizleme modalı
+  const [isRecording, setIsRecording] = React.useState(false);          // Ses kaydı
+  const recognitionRef = React.useRef(null);                            // SpeechRecognition ref
 
   const Markdown = window.ReactMarkdown;
   const { useEffect, useCallback } = React;
@@ -278,6 +284,73 @@ const Chat = function ({ token, user, onLogout }) {
     }
   };
 
+  // ----- Sesli komut (SpeechRecognition) -----
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Tarayıcınız sesli girişi desteklemiyor.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'tr-TR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      setInput((prev) => (prev ? prev + ' ' + text : text));
+    };
+
+    recognition.onerror = () => {
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+    setIsRecording(true);
+  };
+
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopSpeechRecognition();
+    } else {
+      startSpeechRecognition();
+    }
+  };
+
+  // ----- Dosya seçme / temizleme -----
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      alert('Sadece resim dosyası yükleyebilirsiniz.');
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const clearSelectedFile = () => {
+    setSelectedFile(null);
+    const input = document.getElementById('file-input-hidden');
+    if (input) input.value = '';
+  };
+
   // Mesaj Gönderme
   const handleSend = async (e) => {
     e.preventDefault();
@@ -319,6 +392,11 @@ const Chat = function ({ token, user, onLogout }) {
       formData.append('conversation_id', convId);
       formData.append('message', userMessage.content);
 
+      // Eğer resim seçiliyse ekle
+      if (selectedFile) {
+        formData.append('file', selectedFile);
+      }
+
       const response = await axios.post(`${API}/chat/message`, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -334,6 +412,9 @@ const Chat = function ({ token, user, onLogout }) {
           timestamp: ai.created_at
         }
       ]);
+
+      // Gönderimden sonra seçili resmi temizle
+      clearSelectedFile();
 
       if (newConvTitle && convId) {
         fetchConversations();
@@ -376,15 +457,15 @@ const Chat = function ({ token, user, onLogout }) {
       { className: 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50' },
       React.createElement(
         'div',
-        { className: 'bg-white p-6 rounded-lg shadow-xl max-w-sm w-full' },
-        React.createElement('h3', { className: 'text-lg font-semibold mb-4' }, 'Sohbeti Sil'),
-        React.createElement('p', { className: 'mb-6 text-gray-600' }, 'Bu sohbeti kalıcı olarak silmek istediğinizden emin misiniz?'),
+        { className: 'bg-white dark:bg-slate-900 p-6 rounded-lg shadow-xl max-w-sm w-full' },
+        React.createElement('h3', { className: 'text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100' }, 'Sohbeti Sil'),
+        React.createElement('p', { className: 'mb-6 text-gray-600 dark:text-gray-300' }, 'Bu sohbeti kalıcı olarak silmek istediğinizden emin misiniz?'),
         React.createElement(
           'div',
           { className: 'flex justify-end space-x-3' },
           React.createElement(
             'button',
-            { className: 'px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition duration-150', onClick: () => setShowDeleteModal(false) },
+            { className: 'px-4 py-2 text-gray-600 dark:text-gray-200 bg-gray-200 dark:bg-slate-800 rounded-lg hover:bg-gray-300 transition duration-150', onClick: () => setShowDeleteModal(false) },
             'İptal'
           ),
           React.createElement(
@@ -396,12 +477,12 @@ const Chat = function ({ token, user, onLogout }) {
       )
     );
 
-  // Mesaj Bileşeni
+  // Mesaj Bileşeni (resim önizleme destekli)
   const Message = ({ message }) => {
     const isUser = message.role === 'user';
     const msgClass = isUser
       ? 'bg-blue-500 text-white rounded-br-none'
-      : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200';
+      : 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-slate-700';
 
     const components = {
       code({ inline, className, children, ...props }) {
@@ -415,16 +496,26 @@ const Chat = function ({ token, user, onLogout }) {
           : React.createElement('code', { className: 'bg-gray-200 text-red-600 px-1 py-0.5 rounded text-sm', ...props }, children);
       },
       p({ children, ...props }) {
-        return React.createElement('p', { className: 'mb-4', ...props }, children);
+        return React.createElement('p', { className: 'mb-2', ...props }, children);
       },
       li({ children, ...props }) {
         return React.createElement('li', { className: 'mb-1 ml-4 list-disc', ...props }, children);
       }
     };
 
+    // Resim varsa göster
+    const imageElement =
+      message.has_image && message.image_data
+        ? React.createElement('img', {
+            src: `data:image/jpeg;base64,${message.image_data}`,
+            className: 'mt-2 max-h-64 rounded-lg cursor-zoom-in',
+            onClick: () => setPreviewImage(`data:image/jpeg;base64,${message.image_data}`)
+          })
+        : null;
+
     return React.createElement(
       'div',
-      { className: `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6` }, // gereksiz ' kaldırıldı
+      { className: `flex ${isUser ? 'justify-end' : 'justify-start'} mb-6` },
       React.createElement(
         'div',
         { className: `max-w-3xl px-4 py-3 rounded-xl shadow-md ${msgClass}` },
@@ -434,37 +525,39 @@ const Chat = function ({ token, user, onLogout }) {
               className: isUser ? 'text-sm' : 'markdown-content text-sm',
               components
             })
-          : React.createElement('p', null, message.content)
+          : React.createElement('p', null, message.content),
+        imageElement
       )
     );
   };
 
   const activeConvTitle = conversations.find((c) => c.id === selectedConvId)?.title || 'Yeni Sohbet';
+  const themeLabel = theme === 'dark' ? 'Koyu Tema' : 'Açık Tema';
 
   return React.createElement(
     'div',
-    { className: 'flex h-screen antialiased bg-gray-50' },
+    { className: `flex h-screen antialiased bg-gray-50 dark:bg-slate-950 transition-colors duration-300` },
     // Sidebar
     React.createElement(
       'div',
       {
         className: `fixed z-30 inset-y-0 left-0 transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:relative md:translate-x-0 transition duration-300 ease-in-out md:flex md:flex-col w-64 bg-white border-r border-gray-200 shadow-xl md:shadow-none`
+        } md:relative md:translate-x-0 transition duration-300 ease-in-out md:flex md:flex-col w-64 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 shadow-xl md:shadow-none`
       },
       // Sidebar Header
       React.createElement(
         'div',
-        { className: 'p-4 flex items-center justify-between border-b border-gray-200' },
+        { className: 'p-4 flex items-center justify-between border-b border-gray-200 dark:border-slate-800' },
         React.createElement(
           'h3',
-          { className: 'text-lg font-bold text-gray-800 flex items-center' },
+          { className: 'text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center' },
           React.createElement(Icon, { name: 'MessageSquare', className: 'w-5 h-5 mr-2 text-blue-600' }),
           'Konuşmalar'
         ),
         React.createElement(
           'button',
-          { className: 'md:hidden text-gray-500 hover:text-gray-700', onClick: () => setSidebarOpen(false) },
+          { className: 'md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-300', onClick: () => setSidebarOpen(false) },
           React.createElement(Icon, { name: 'X', className: 'w-6 h-6' })
         )
       ),
@@ -476,7 +569,7 @@ const Chat = function ({ token, user, onLogout }) {
           'button',
           {
             className:
-              'w-full flex items-center justify-center px-4 py-3 border border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition duration-150',
+              'w-full flex items-center justify-center px-4 py-3 border border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition duration-150',
             onClick: startNewConversation
           },
           React.createElement(Icon, { name: 'Plus', className: 'w-5 h-5 mr-2' }),
@@ -494,7 +587,9 @@ const Chat = function ({ token, user, onLogout }) {
               key: conv.id,
               href: '#',
               className: `flex items-center p-3 rounded-xl transition duration-150 ${
-                conv.id === selectedConvId ? 'bg-blue-100 text-blue-700 font-semibold' : 'text-gray-600 hover:bg-gray-100'
+                conv.id === selectedConvId
+                  ? 'bg-blue-100 dark:bg-slate-800 text-blue-700 dark:text-blue-300 font-semibold'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800'
               }`,
               onClick: (e) => {
                 e.preventDefault();
@@ -516,25 +611,44 @@ const Chat = function ({ token, user, onLogout }) {
       // Header
       React.createElement(
         'header',
-        { className: 'sticky top-0 z-10 p-4 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm' },
+        { className: 'sticky top-0 z-10 p-4 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 flex items-center justify-between shadow-sm' },
         React.createElement(
           'button',
-          { className: 'md:hidden text-gray-600 hover:text-gray-800 mr-4', onClick: () => setSidebarOpen(true) },
+          { className: 'md:hidden text-gray-600 hover:text-gray-800 dark:text-gray-200 mr-4', onClick: () => setSidebarOpen(true) },
           React.createElement(Icon, { name: 'Menu', className: 'w-6 h-6' })
         ),
-        React.createElement('div', { className: 'flex-1' }, React.createElement('h2', { className: 'text-xl font-bold text-gray-900 truncate' }, activeConvTitle)),
+        React.createElement(
+          'div',
+          { className: 'flex-1' },
+          React.createElement(
+            'div',
+            { className: 'flex flex-col' },
+            React.createElement('h2', { className: 'text-xl font-bold text-gray-900 dark:text-gray-100 truncate' }, activeConvTitle),
+            React.createElement('span', { className: 'text-xs text-gray-500 dark:text-gray-400' }, 'Alpine AI · Gemini tabanlı asistan')
+          )
+        ),
         React.createElement(
           'div',
           { className: 'flex items-center space-x-3' },
+          React.createElement(
+            'button',
+            {
+              className:
+                'hidden md:flex items-center px-3 py-1 text-xs rounded-full border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800',
+              onClick: onToggleTheme
+            },
+            React.createElement('span', { className: 'mr-1' }, theme === 'dark' ? '🌙' : '☀️'),
+            themeLabel
+          ),
           selectedConvId &&
             React.createElement(
               'button',
-              { className: 'p-2 text-red-600 hover:bg-red-50 rounded-full transition duration-150', title: 'Sohbeti Sil', onClick: () => setShowDeleteModal(true) },
+              { className: 'p-2 text-red-600 hover:bg-red-50 dark:hover:bg-slate-800 rounded-full transition duration-150', title: 'Sohbeti Sil', onClick: () => setShowDeleteModal(true) },
               React.createElement(Icon, { name: 'Trash2', className: 'w-5 h-5' })
             ),
           React.createElement(
             'button',
-            { className: 'p-2 text-gray-600 hover:bg-gray-100 rounded-full transition duration-150', title: 'Çıkış Yap', onClick: onLogout },
+            { className: 'p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-slate-800 rounded-full transition duration-150', title: 'Çıkış Yap', onClick: onLogout },
             React.createElement(Icon, { name: 'LogOut', className: 'w-5 h-5' })
           )
         )
@@ -543,7 +657,7 @@ const Chat = function ({ token, user, onLogout }) {
       // Mesaj Akışı
       React.createElement(
         'main',
-        { className: 'flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50' },
+        { className: 'flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-slate-950' },
         messages.map((msg, index) => React.createElement(Message, { key: index, message: msg })),
         isSending &&
           React.createElement(
@@ -551,7 +665,7 @@ const Chat = function ({ token, user, onLogout }) {
             { className: 'flex justify-start mb-6' },
             React.createElement(
               'div',
-              { className: 'max-w-3xl px-4 py-3 rounded-xl shadow-md bg-gray-100' },
+              { className: 'max-w-3xl px-4 py-3 rounded-xl shadow-md bg-gray-100 dark:bg-slate-800' },
               React.createElement(
                 'div',
                 { className: 'flex space-x-1' },
@@ -568,7 +682,7 @@ const Chat = function ({ token, user, onLogout }) {
             { className: 'h-full flex items-center justify-center' },
             React.createElement(
               'div',
-              { className: 'text-center text-gray-500' },
+              { className: 'text-center text-gray-500 dark:text-gray-400' },
               React.createElement(Icon, { name: 'MessageSquare', className: 'w-10 h-10 mx-auto mb-3 text-blue-400' }),
               React.createElement('p', { className: 'text-lg font-medium' }, 'Yeni bir sohbet başlatın veya mesajınızı yazın.')
             )
@@ -579,46 +693,118 @@ const Chat = function ({ token, user, onLogout }) {
       // Mesaj Giriş Alanı
       React.createElement(
         'footer',
-        { className: 'p-4 bg-white border-t border-gray-200' },
+        { className: 'p-4 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-slate-800' },
         React.createElement(
           'form',
-          { className: 'flex items-center space-x-3', onSubmit: handleSend },
-          React.createElement('textarea', {
-            className:
-              'flex-1 resize-none p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150',
-            rows: 1,
-            placeholder: 'Mesajınızı yazın...',
-            value: input,
-            onChange: (e) => setInput(e.target.value),
-            onKeyDown: (e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(e);
-              }
-            },
-            disabled: isSending
-          }),
+          { className: 'flex flex-col space-y-2 md:flex-row md:space-y-0 md:space-x-3', onSubmit: handleSend },
+          // Seçili resim önizleme
+          selectedFile &&
+            React.createElement(
+              'div',
+              { className: 'flex items-center justify-between px-3 py-2 rounded-lg bg-gray-100 dark:bg-slate-800 text-xs text-gray-700 dark:text-gray-200 mb-2 md:mb-0' },
+              React.createElement('span', { className: 'truncate mr-2' }, selectedFile.name),
+              React.createElement(
+                'button',
+                {
+                  type: 'button',
+                  className: 'text-red-500 hover:text-red-700 text-xs',
+                  onClick: clearSelectedFile
+                },
+                'Kaldır'
+              )
+            ),
           React.createElement(
-            'button',
-            {
-              type: 'submit',
-              className: `p-3 rounded-full text-white transition duration-300 ${
-                input.trim() && !isSending ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
-              }`,
-              disabled: !input.trim() || isSending
-            },
-            isSending
-              ? React.createElement('div', {
-                  className: 'w-5 h-5 border-2 border-white border-t-transparent border-solid rounded-full animate-spin'
-                })
-              : React.createElement(Icon, { name: 'Send', className: 'w-5 h-5' })
+            'div',
+            { className: 'flex-1 flex items-end space-x-2' },
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className:
+                  'p-2 rounded-full border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800',
+                onClick: () => document.getElementById('file-input-hidden')?.click(),
+                title: 'Resim ekle'
+              },
+              '📎'
+            ),
+            React.createElement('input', {
+              id: 'file-input-hidden',
+              type: 'file',
+              accept: 'image/*',
+              className: 'hidden',
+              onChange: handleFileChange
+            }),
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className:
+                  'p-2 rounded-full border border-gray-300 dark:border-slate-700 text-gray-600 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800',
+                onClick: toggleRecording,
+                title: 'Sesle yaz'
+              },
+              isRecording ? '⏹' : '🎤'
+            ),
+            React.createElement('textarea', {
+              className:
+                'flex-1 resize-none p-3 border border-gray-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150',
+              rows: 1,
+              placeholder: 'Mesajınızı yazın...',
+              value: input,
+              onChange: (e) => setInput(e.target.value),
+              onKeyDown: (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(e);
+                }
+              },
+              disabled: isSending
+            }),
+            React.createElement(
+              'button',
+              {
+                type: 'submit',
+                className: `p-3 rounded-full text-white transition duration-300 ${
+                  input.trim() && !isSending ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'
+                }`,
+                disabled: !input.trim() || isSending
+              },
+              isSending
+                ? React.createElement('div', {
+                    className: 'w-5 h-5 border-2 border-white border-t-transparent border-solid rounded-full animate-spin'
+                  })
+                : React.createElement(Icon, { name: 'Send', className: 'w-5 h-5' })
+            )
           )
         )
       )
     ),
 
-    // Modal
-    showDeleteModal && React.createElement(LogoutModal, null)
+    // Modal: sohbet silme
+    showDeleteModal && React.createElement(LogoutModal, null),
+
+    // Modal: resim büyük önizleme
+    previewImage &&
+      React.createElement(
+        'div',
+        {
+          className: 'fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-70',
+          onClick: () => setPreviewImage(null)
+        },
+        React.createElement('img', {
+          src: previewImage,
+          className: 'max-h-[80vh] max-w-[90vw] rounded-xl shadow-2xl',
+          onClick: (e) => e.stopPropagation()
+        }),
+        React.createElement(
+          'button',
+          {
+            className: 'absolute top-4 right-4 text-white text-2xl',
+            onClick: () => setPreviewImage(null)
+          },
+          '✕'
+        )
+      )
   );
 };
 
@@ -626,6 +812,21 @@ const Chat = function ({ token, user, onLogout }) {
 const App = function () {
   const [token, setToken] = React.useState(localStorage.getItem('token'));
   const [user, setUser] = React.useState(JSON.parse(localStorage.getItem('user') || 'null'));
+
+  // Tema state'i
+  const [theme, setTheme] = React.useState(
+    () => localStorage.getItem('theme') || 'light'
+  );
+
+  React.useEffect(() => {
+    // documentElement'e data-theme ekle
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   const handleLogin = (newToken, newUser) => {
     localStorage.setItem('token', newToken);
@@ -641,17 +842,15 @@ const App = function () {
     setUser(null);
   };
 
-  const hasRouter = HashRouter && Routes && Route && Navigate;
-
-  // Eğer React Router DOM yoksa, basit fallback: sadece token durumuna göre Auth / Chat
-  if (!hasRouter) {
-    console.warn('React Router DOM bulunamadı, Router’sız fallback modunda çalışıyor.');
-    return token
-      ? React.createElement(Chat, { token, user, onLogout: handleLogout })
-      : React.createElement(Auth, { onLogin: handleLogin });
+  // Router yoksa fallback
+  if (!HashRouter || !Routes || !Route || !Navigate) {
+    return React.createElement(
+      'div',
+      { className: 'p-10 text-center text-red-600 font-bold' },
+      'KRİTİK HATA: React Router DOM yüklü değil. index.html dosyasındaki CDN sırasını kontrol edin.'
+    );
   }
 
-  // Router varsa, HashRouter ile çalış
   return React.createElement(
     HashRouter,
     null,
@@ -661,7 +860,13 @@ const App = function () {
       React.createElement(Route, {
         path: '/',
         element: token
-          ? React.createElement(Chat, { token: token, user: user, onLogout: handleLogout })
+          ? React.createElement(Chat, {
+              token: token,
+              user: user,
+              onLogout: handleLogout,
+              theme: theme,
+              onToggleTheme: handleToggleTheme
+            })
           : React.createElement(Navigate, { to: '/auth', replace: true })
       }),
       React.createElement(Route, {
@@ -687,4 +892,3 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error('KRİTİK HATA: React 18 createRoot bulunamadı.');
 }
-
