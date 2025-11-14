@@ -294,8 +294,43 @@ async def get_gemini_chat_history(conversation_id: str) -> List[Any]:
         )
 
         history.append(content)
-
     return history
+    
+    async def generate_title_from_message(first_message: str) -> str:
+    """İlk mesajdan başlık oluşturur."""
+    if not gemini_client:
+        return "New Chat Topic"
+
+    system_instruction = (
+        "You are a title generator AI. Your sole purpose is to take the user's first message in a chat and "
+        "generate a concise, descriptive, and human-readable title (max 5-7 words, NO punctuation marks like "
+        "quotes or periods at the end). Respond ONLY with the title."
+    )
+
+    try:
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=[f"Generate a title for this chat: '{first_message}'"],
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system_instruction
+            ),
+        )
+
+        title = response.text.strip().replace('"', "").replace("'", "").replace(".", "")
+
+        # Çok saçma uzun başlık üretirse fallback
+        if len(title.split()) > 7:
+            return "New Chat Topic"
+
+        return title
+
+    except APIError as e:
+        logging.error(f"Gemini API Error (Title generation): {e}")
+        return "New Chat Topic"
+    except Exception as e:
+        logging.error(f"Title generation failed: {e}")
+        return "New Chat Topic"
+
 
 # =========================================================================
 # CHAT ENDPOINTS
@@ -536,4 +571,5 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
+
 
