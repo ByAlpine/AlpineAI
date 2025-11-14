@@ -2,6 +2,7 @@
 # GEREKLİ KÜTÜPHANE İÇE AKTARMALARI
 # =========================================================================
 import os
+import secrets
 import io
 import uuid
 import base64
@@ -571,5 +572,6 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
+
 
 
