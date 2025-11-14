@@ -126,12 +126,24 @@ class Conversation(BaseModel):
 
 
 class ChatMessageRequest(BaseModel):
+    # Şifre sıfırlama için modeller
+class ForgotPasswordRequest(BaseModel):
+  email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+  email: EmailStr
+  code: str
+  new_password: str
+
+PASSWORD_RESET_EXPIRE_MINUTES = int(os.getenv("RESET_CODE_EXPIRE_MINUTES", "15"))
+
     conversation_id: str
     message: str
 
     @classmethod
     def as_form(cls, conversation_id: str = Form(...), message: str = Form(...)):
         return cls(conversation_id=conversation_id, message=message)
+        
 
 # =========================================================================
 # GÜVENLİK VE BAĞIMLILIKLAR
@@ -163,6 +175,13 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # =========================================================================
 # AUTH ENDPOINTS
 # =========================================================================
+async def send_reset_code_email(email: str, code: str):
+    """
+    Gerçek projede burada SMTP / Mail servisi kullanırsın.
+    Şimdilik sadece log'a basıyoruz ki üretim ortamında test edebilesin.
+    """
+    logging.info(f"[RESET-KODU] {email} adresine gönderilen kod: {code}")
+    # Örn. SendGrid / Mailgun / Gmail SMTP entegrasyonu burada olur.
 
 @api_router.post("/auth/register")
 async def register_user(user_data: UserCreate):
@@ -227,6 +246,73 @@ async def login_user(login_data: UserLogin):
             "email": user.email,
         },
     }
+@api_router.post("/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    """
+    Şifremi unuttum: 6 haneli kod üret, DB'ye kaydet, mail gönder.
+    Güvenlik için email yoksa bile aynı cevabı döneriz.
+    """
+    user_doc = await db.users.find_one({"email": req.email})
+    if not user_doc:
+        # Kullanıcı yoksa bile "tamam" deyip dönüyoruz (email enumeration engellemek için)
+        return {"message": "Eğer bu email kayıtlıysa, doğrulama kodu gönderildi."}
+
+    user = User(**user_doc)
+
+    # 6 haneli kod üret
+    code = f"{secrets.randbelow(10**6):06d}"
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES)
+
+    # Eski kodları temizle
+    await db.password_reset_codes.delete_many({"user_id": user.id})
+
+    await db.password_reset_codes.insert_one({
+        "user_id": user.id,
+        "email": user.email,
+        "code": code,
+        "expires_at": expires_at.isoformat()
+    })
+
+    # Şimdilik log'a basıyoruz
+    await send_reset_code_email(user.email, code)
+
+    return {"message": "Eğer bu email kayıtlıysa, doğrulama kodu gönderildi."}
+
+@api_router.post("/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    """
+    Email + 6 haneli kod + yeni şifre ile şifre sıfırlama.
+    """
+    user_doc = await db.users.find_one({"email": req.email})
+    if not user_doc:
+        raise HTTPException(status_code=400, detail="Geçersiz kod veya email")
+
+    user = User(**user_doc)
+
+    code_doc = await db.password_reset_codes.find_one({"user_id": user.id, "code": req.code})
+    if not code_doc:
+        raise HTTPException(status_code=400, detail="Geçersiz kod veya email")
+
+    # Süre dolmuş mu kontrol et
+    try:
+        expires_at = datetime.fromisoformat(code_doc["expires_at"])
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="Doğrulama kodunun süresi dolmuş")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Geçersiz doğrulama kaydı")
+
+    # Yeni şifre hashle
+    hashed_password = bcrypt.hashpw(req.new_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    await db.users.update_one(
+        {"id": user.id},
+        {"$set": {"hashed_password": hashed_password}}
+    )
+
+    # Kullanılan kodu sil
+    await db.password_reset_codes.delete_many({"user_id": user.id})
+
+    return {"message": "Şifreniz başarıyla güncellendi. Artık yeni şifrenizle giriş yapabilirsiniz."}
 
 
 @api_router.get("/auth/me")
@@ -572,6 +658,7 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
+
 
 
 
