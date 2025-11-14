@@ -43,7 +43,7 @@ const Icon = ({ name, className = 'w-5 h-5', size }) => {
 
 // ============================= AUTH =============================
 const Auth = function ({ onLogin }) {
-  const [isLogin, setIsLogin] = React.useState(true);
+  const [mode, setMode] = React.useState('login'); // 'login' | 'register' | 'forgot' | 'reset'
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -51,21 +51,55 @@ const Auth = function ({ onLogin }) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
+  // Şifre sıfırlama state'leri
+  const [resetCode, setResetCode] = React.useState('');
+  const [newPassword, setNewPassword] = React.useState('');
+  const [infoMessage, setInfoMessage] = React.useState('');
+
+  const isLogin = mode === 'login';
+  const isRegister = mode === 'register';
+  const isForgot = mode === 'forgot';
+  const isReset = mode === 'reset';
+
+  const resetErrors = () => {
+    setError(null);
+    setInfoMessage('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    resetErrors();
     setIsLoading(true);
 
-    const endpoint = isLogin ? `${API}/auth/login` : `${API}/auth/register`;
-    const data = isLogin ? { email, password } : { email, password, full_name: fullName };
-
     try {
-      const response = await axios.post(endpoint, data);
+      if (isLogin || isRegister) {
+        const endpoint = isLogin ? `${API}/auth/login` : `${API}/auth/register`;
+        const data = isLogin ? { email, password } : { email, password, full_name: fullName };
 
-      if (response.data.access_token) {
-        onLogin(response.data.access_token, response.data.user);
-      } else {
-        setError('Beklenmedik bir hata oluştu.');
+        const response = await axios.post(endpoint, data);
+
+        if (response.data.access_token) {
+          onLogin(response.data.access_token, response.data.user);
+        } else {
+          setError('Beklenmedik bir hata oluştu.');
+        }
+      } else if (isForgot) {
+        // Şifremi unuttum → kod gönder
+        await axios.post(`${API}/auth/forgot-password`, { email });
+        setInfoMessage('Eğer bu e-posta kayıtlıysa, doğrulama kodu gönderildi.');
+        setMode('reset');
+      } else if (isReset) {
+        // Kodu ve yeni şifreyi gönder
+        await axios.post(`${API}/auth/reset-password`, {
+          email,
+          code: resetCode,
+          new_password: newPassword
+        });
+        setInfoMessage('Şifreniz başarıyla güncellendi. Lütfen giriş yapın.');
+        setMode('login');
+        setPassword('');
+        setNewPassword('');
+        setResetCode('');
       }
     } catch (err) {
       const errorMsg = err.response?.data?.detail || 'Bir hata oluştu. Lütfen tekrar deneyin.';
@@ -76,30 +110,44 @@ const Auth = function ({ onLogin }) {
   };
 
   const isFormValid = () => {
-    if (!email || !password) return false;
-    if (!isLogin && !fullName) return false;
-    return true;
+    if (isLogin) return email && password;
+    if (isRegister) return email && password && fullName;
+    if (isForgot) return email;
+    if (isReset) return email && resetCode && newPassword;
+    return false;
   };
 
   const inputClass =
-    'w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out';
+    'w-full p-3 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-150 ease-in-out';
   const buttonClass = `w-full p-3 text-white font-semibold rounded-lg transition duration-300 ease-in-out ${
     isFormValid() && !isLoading ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-blue-300 cursor-not-allowed'
   }`;
-  const linkClass = 'text-blue-600 hover:text-blue-800 font-medium transition duration-150 ease-in-out';
+  const linkClass = 'text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition duration-150 ease-in-out';
+
+  const titleText = isLogin
+    ? 'Giriş Yap'
+    : isRegister
+    ? 'Kayıt Ol'
+    : isForgot
+    ? 'Şifremi Unuttum'
+    : 'Şifre Sıfırlama';
 
   return React.createElement(
     'div',
-    { className: 'flex items-center justify-center min-h-screen bg-gray-50' },
+    { className: 'flex items-center justify-center min-h-screen bg-gray-50 dark:bg-slate-950' },
     React.createElement(
       'div',
-      { className: 'w-full max-w-md p-8 space-y-8 bg-white shadow-xl rounded-2xl' },
-      React.createElement('h2', { className: 'text-center text-3xl font-bold text-gray-900' }, isLogin ? 'Giriş Yap' : 'Kayıt Ol'),
+      { className: 'w-full max-w-md p-8 space-y-6 bg-white dark:bg-slate-900 shadow-xl rounded-2xl' },
+      React.createElement('h2', { className: 'text-center text-3xl font-bold text-gray-900 dark:text-gray-100' }, titleText),
       error && React.createElement('div', { className: 'p-3 text-sm font-medium text-red-700 bg-red-100 rounded-lg' }, error),
+      infoMessage &&
+        React.createElement('div', { className: 'p-3 text-sm font-medium text-green-700 bg-green-100 rounded-lg' }, infoMessage),
       React.createElement(
         'form',
-        { className: 'mt-8 space-y-6', onSubmit: handleSubmit },
-        !isLogin &&
+        { className: 'mt-4 space-y-6', onSubmit: handleSubmit },
+        !isForgot &&
+          !isReset &&
+          isRegister &&
           React.createElement(
             'div',
             null,
@@ -130,61 +178,132 @@ const Auth = function ({ onLogin }) {
             onChange: (e) => setEmail(e.target.value)
           })
         ),
-        // Şifre + Göz ikonu
-        React.createElement(
-          'div',
-          { className: 'relative' },
-          React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'),
-          React.createElement('input', {
-            id: 'password',
-            name: 'password',
-            type: showPassword ? 'text' : 'password',
-            required: true,
-            className: inputClass,
-            placeholder: 'Şifre',
-            value: password,
-            onChange: (e) => setPassword(e.target.value)
-          }),
+        // Şifre alanları
+        (isLogin || isRegister) &&
           React.createElement(
-            'button',
-            {
-              type: 'button',
-              className:
-                'absolute inset-y-0 right-0 flex items-center px-3 text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
-              onClick: () => setShowPassword((prev) => !prev),
-              'aria-label': showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'
-            },
-            React.createElement('span', { className: 'mr-1 hidden sm:inline' }, showPassword ? 'Gizle' : 'Göster'),
-            showPassword
-              ? React.createElement(Icon, { name: 'EyeOff', className: 'w-5 h-5' })
-              : React.createElement(Icon, { name: 'Eye', className: 'w-5 h-5' })
-          )
-        ),
+            'div',
+            { className: 'relative' },
+            React.createElement('label', { htmlFor: 'password', className: 'sr-only' }, 'Şifre'),
+            React.createElement('input', {
+              id: 'password',
+              name: 'password',
+              type: showPassword ? 'text' : 'password',
+              required: true,
+              className: inputClass,
+              placeholder: 'Şifre',
+              value: password,
+              onChange: (e) => setPassword(e.target.value)
+            }),
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className:
+                  'absolute inset-y-0 right-0 flex items-center px-3 text-sm font-semibold text-blue-600 hover:text-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+                onClick: () => setShowPassword((prev) => !prev),
+                'aria-label': showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'
+              },
+              React.createElement('span', { className: 'mr-1 hidden sm:inline' }, showPassword ? 'Gizle' : 'Göster'),
+              showPassword
+                ? React.createElement(Icon, { name: 'EyeOff', className: 'w-5 h-5' })
+                : React.createElement(Icon, { name: 'Eye', className: 'w-5 h-5' })
+            )
+          ),
+        // Reset ekranındaki yeni şifre alanları
+        isReset &&
+          React.createElement(
+            React.Fragment,
+            null,
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { htmlFor: 'reset-code', className: 'sr-only' }, 'Doğrulama Kodu'),
+              React.createElement('input', {
+                id: 'reset-code',
+                name: 'reset-code',
+                type: 'text',
+                maxLength: 6,
+                className: inputClass,
+                placeholder: '6 haneli doğrulama kodu',
+                value: resetCode,
+                onChange: (e) => setResetCode(e.target.value.replace(/\D/g, ''))
+              })
+            ),
+            React.createElement(
+              'div',
+              null,
+              React.createElement('label', { htmlFor: 'new-password', className: 'sr-only' }, 'Yeni Şifre'),
+              React.createElement('input', {
+                id: 'new-password',
+                name: 'new-password',
+                type: 'password',
+                className: inputClass,
+                placeholder: 'Yeni şifreniz',
+                value: newPassword,
+                onChange: (e) => setNewPassword(e.target.value)
+              })
+            )
+          ),
         React.createElement(
           'div',
           null,
           React.createElement(
             'button',
             { type: 'submit', disabled: !isFormValid() || isLoading, className: buttonClass },
-            isLoading ? 'Yükleniyor...' : isLogin ? 'Giriş Yap' : 'Kayıt Ol'
+            isLoading
+              ? 'Yükleniyor...'
+              : isLogin
+              ? 'Giriş Yap'
+              : isRegister
+              ? 'Kayıt Ol'
+              : isForgot
+              ? 'Kodu Gönder'
+              : 'Şifreyi Güncelle'
           )
         ),
+        // Alt linkler
         React.createElement(
           'div',
-          { className: 'text-center' },
-          React.createElement(
-            'a',
-            {
-              href: '#',
-              className: linkClass,
-              onClick: (e) => {
-                e.preventDefault();
-                setIsLogin(!isLogin);
-                setError(null);
-              }
-            },
-            isLogin ? 'Hesabınız yok mu? Kayıt Olun.' : 'Zaten hesabınız var mı? Giriş Yapın.'
-          )
+          { className: 'flex items-center justify-between text-sm' },
+          (isLogin || isRegister) &&
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className: linkClass,
+                onClick: () => {
+                  resetErrors();
+                  setMode(isLogin ? 'register' : 'login');
+                }
+              },
+              isLogin ? 'Hesabınız yok mu? Kayıt Olun.' : 'Zaten hesabınız var mı? Giriş Yapın.'
+            ),
+          isLogin &&
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className: linkClass,
+                onClick: () => {
+                  resetErrors();
+                  setMode('forgot');
+                }
+              },
+              'Şifremi unuttum'
+            ),
+          (isForgot || isReset) &&
+            React.createElement(
+              'button',
+              {
+                type: 'button',
+                className: linkClass,
+                onClick: () => {
+                  resetErrors();
+                  setMode('login');
+                }
+              },
+              'Giriş ekranına dön'
+            )
         )
       )
     )
@@ -892,3 +1011,4 @@ if (container && window.ReactDOM && window.ReactDOM.createRoot) {
 } else {
   console.error('KRİTİK HATA: React 18 createRoot bulunamadı.');
 }
+
