@@ -357,3 +357,28 @@ button[aria-label="Şifreyi göster"], button[aria-label="Şifreyi gizle"] {
 button[aria-label="Şifreyi göster"]:hover, button[aria-label="Şifreyi gizle"]:hover {
   color: #1d4ed8;
 }
+/* Tema (açık / koyu) için root attribute */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root[data-theme='dark'] body {
+  background-color: #020617;
+  color: #e5e7eb;
+}
+
+/* Dark mod override'ları (Tailwind klası kullanıyorsun, biraz zorlama ama iş görür) */
+:root[data-theme='dark'] .bg-white {
+  background-color: #020617 !important;
+}
+:root[data-theme='dark'] .bg-gray-50 {
+  background-color: #020617 !important;
+}
+:root[data-theme='dark'] .text-gray-900 {
+  color: #f9fafb !important;
+}
+:root[data-theme='dark'] .text-gray-800 {
+  color: #e5e7eb !important;
+}
+
+
