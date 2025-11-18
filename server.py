@@ -46,9 +46,12 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "168"))
 
 # Gemini Model Ayarları
-# (default'u gemini-1.5-flash yaptım, en stabil model)
+# (default'u gemini-1.5-flash yaptım, stabil bir model)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+# Şifre sıfırlama kodu süresi (dakika)
+PASSWORD_RESET_EXPIRE_MINUTES = int(os.getenv("RESET_CODE_EXPIRE_MINUTES", "15"))
 
 # =========================================================================
 # VERİTABANI BAĞLANTISI
@@ -126,24 +129,23 @@ class Conversation(BaseModel):
 
 
 class ChatMessageRequest(BaseModel):
-    # Şifre sıfırlama için modeller
-class ForgotPasswordRequest(BaseModel):
-  email: EmailStr
-
-class ResetPasswordRequest(BaseModel):
-  email: EmailStr
-  code: str
-  new_password: str
-
-PASSWORD_RESET_EXPIRE_MINUTES = int(os.getenv("RESET_CODE_EXPIRE_MINUTES", "15"))
-
     conversation_id: str
     message: str
 
     @classmethod
     def as_form(cls, conversation_id: str = Form(...), message: str = Form(...)):
         return cls(conversation_id=conversation_id, message=message)
-        
+
+
+# Şifre sıfırlama için modeller
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
 
 # =========================================================================
 # GÜVENLİK VE BAĞIMLILIKLAR
@@ -173,15 +175,17 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 # =========================================================================
-# AUTH ENDPOINTS
+# AUTH + ŞİFRE SIFIRLAMA ENDPOINTLERİ
 # =========================================================================
+
 async def send_reset_code_email(email: str, code: str):
     """
     Gerçek projede burada SMTP / Mail servisi kullanırsın.
-    Şimdilik sadece log'a basıyoruz ki üretim ortamında test edebilesin.
+    Şimdilik sadece log'a basıyoruz.
     """
     logging.info(f"[RESET-KODU] {email} adresine gönderilen kod: {code}")
     # Örn. SendGrid / Mailgun / Gmail SMTP entegrasyonu burada olur.
+
 
 @api_router.post("/auth/register")
 async def register_user(user_data: UserCreate):
@@ -246,6 +250,8 @@ async def login_user(login_data: UserLogin):
             "email": user.email,
         },
     }
+
+
 @api_router.post("/auth/forgot-password")
 async def forgot_password(req: ForgotPasswordRequest):
     """
@@ -273,10 +279,10 @@ async def forgot_password(req: ForgotPasswordRequest):
         "expires_at": expires_at.isoformat()
     })
 
-    # Şimdilik log'a basıyoruz
     await send_reset_code_email(user.email, code)
 
     return {"message": "Eğer bu email kayıtlıysa, doğrulama kodu gönderildi."}
+
 
 @api_router.post("/auth/reset-password")
 async def reset_password(req: ResetPasswordRequest):
@@ -381,9 +387,11 @@ async def get_gemini_chat_history(conversation_id: str) -> List[Any]:
         )
 
         history.append(content)
+
     return history
-    
-    async def generate_title_from_message(first_message: str) -> str:
+
+
+async def generate_title_from_message(first_message: str) -> str:
     """İlk mesajdan başlık oluşturur."""
     if not gemini_client:
         return "New Chat Topic"
@@ -417,7 +425,6 @@ async def get_gemini_chat_history(conversation_id: str) -> List[Any]:
     except Exception as e:
         logging.error(f"Title generation failed: {e}")
         return "New Chat Topic"
-
 
 # =========================================================================
 # CHAT ENDPOINTS
@@ -615,7 +622,6 @@ async def send_message(
     }
 
 
-
 @api_router.delete("/chat/conversation/{conversation_id}")
 async def delete_conversation(conversation_id: str, current_user: User = Depends(get_current_user)):
     """Konuşmayı ve mesajlarını siler."""
@@ -658,7 +664,3 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")
 async def health_check():
     """Render için Health check endpoint'i."""
     return {"status": "healthy"}
-
-
-
-
